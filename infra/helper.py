@@ -344,6 +344,13 @@ def get_parser():  # pylint: disable=too-many-statements
   reproduce_parser.add_argument('--valgrind',
                                 action='store_true',
                                 help='run with valgrind')
+  reproduce_parser.add_argument('--tracer',
+                                action='store_true',
+                                help='run with tracer')
+  reproduce_parser.add_argument('--num_runs',
+                                type=int,
+                                default=100,
+                                help='run input x amount of times')
   reproduce_parser.add_argument('project',
                                 help='name of the project or path (external)')
   reproduce_parser.add_argument('fuzzer_name', help='name of the fuzzer')
@@ -990,21 +997,24 @@ def run_fuzzer(args):
       BASE_RUNNER_IMAGE,
       'run_fuzzer',
       args.fuzzer_name,
-  ] + args.fuzzer_args)
+  ] + ["-" + a for a in args.fuzzer_args])
 
+  # return docker_run(run_args, timeout=args.timeout, architecture=args.architecture)
   return docker_run(run_args, architecture=args.architecture)
 
 
 def reproduce(args):
   """Reproduces a specific test case from a specific project."""
-  return reproduce_impl(args.project, args.fuzzer_name, args.valgrind, args.e,
-                        args.fuzzer_args, args.testcase_path)
+  return reproduce_impl(args.project, args.fuzzer_name, args.valgrind, args.tracer, args.num_runs,
+                        args.e, args.fuzzer_args, args.testcase_path)
 
 
 def reproduce_impl(  # pylint: disable=too-many-arguments
     project,
     fuzzer_name,
     valgrind,
+    tracer,
+    num_runs,
     env_to_add,
     fuzzer_args,
     testcase_path,
@@ -1024,6 +1034,9 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
   if valgrind:
     debugger = 'valgrind --tool=memcheck --track-origins=yes --leak-check=full'
 
+  if tracer:
+    debugger = 'JAVA_OPTS="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=*:8787"'
+
   if debugger:
     image_name = 'base-runner-debug'
     env += ['DEBUGGER=' + debugger]
@@ -1031,17 +1044,19 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
   if env_to_add:
     env += env_to_add
 
+  # TODO: disable all coverage. Slow!
   run_args = _env_to_docker_args(env) + [
       '-v',
       '%s:/out' % project.out,
       '-v',
       '%s:/testcase' % _get_absolute_path(testcase_path),
+      '-v',
+      '%s:/java-tracer' % '/home/benjis/code/bug-benchmarks/trace-modeling/trace_collection_java/app/build/libs',
+      '-p', '8787:8787',
       '-t',
       'gcr.io/oss-fuzz-base/%s' % image_name,
-      'reproduce',
-      fuzzer_name,
-      '-runs=100',
-  ] + fuzzer_args
+      'bash', '-c', "sed -i '25s/.*/if [ ! -e $TESTCASE ]; then/g' /usr/local/bin/reproduce; reproduce %s -runs=%d %s" % (fuzzer_name, num_runs, " ".join("-" + a for a in fuzzer_args)),
+  ]
 
   return run_function(run_args)
 
