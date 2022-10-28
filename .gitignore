@@ -5,3 +5,9 @@
 .DS_Store
 *.swp
 .venv
+/*.log
+/*.txt
+/corpus/
+/corpus-small/
+/corpora/
+/logs_*/
