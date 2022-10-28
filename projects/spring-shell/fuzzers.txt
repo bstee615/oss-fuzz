@@ -1,0 +1,3 @@
+CommandParserFuzzer
+TableFuzzer
+BashCompletionsFuzzer

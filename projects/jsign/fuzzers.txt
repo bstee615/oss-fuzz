@@ -1,0 +1,3 @@
+AuthenticodeCabSignerFuzzer
+AuthenticodeExeSignerFuzzer
+AuthenticodeMsiSignerFuzzer

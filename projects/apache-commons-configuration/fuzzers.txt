@@ -1,0 +1,8 @@
+JSONConfigurationWriteFuzzer
+YAMLConfigurationWriteFuzzer
+YAMLConfigurationReadFuzzer
+INIConfigurationWriteFuzzer
+XMLConfigurationLoadFuzzer
+INIConfigurationReadFuzzer
+JSONConfigurationReadFuzzer
+XMLConfigurationWriteFuzzer

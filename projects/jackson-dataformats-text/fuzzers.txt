@@ -1,0 +1,4 @@
+TOMLFuzzer
+CSVFuzzer
+YAMLFuzzer
+PropertiesFuzzer
