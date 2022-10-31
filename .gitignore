@@ -11,3 +11,5 @@
 /corpus-small/
 /corpora/
 /logs_*/
+/corpora*/
+/traces*/
