@@ -1,6 +1,9 @@
 #!/bin/bash
 
+#OPTIONS
 log_dir="traces-1m"
+quit_after_one=false
+#OPTIONS
 
 rm -rf trace_all_*.log $log_dir
 
@@ -46,5 +49,13 @@ do
             wait $P1 $P2
         fi
         echo Traced $p-$f
+        if [ $quit_after_one = true ]
+        then
+            break
+        fi
     done < projects/$p/fuzzers.txt
+    if [ $quit_after_one = true ]
+    then
+        break
+    fi
 done < java-projects-from-csv.txt | tqdm --total $(cat projects/*/fuzzers.txt | wc -l) >> /dev/null
