@@ -347,6 +347,10 @@ def get_parser():  # pylint: disable=too-many-statements
   reproduce_parser.add_argument('--tracer',
                                 action='store_true',
                                 help='run with tracer')
+  reproduce_parser.add_argument('--tracer_port',
+                                type=str,
+                                default="8787",
+                                help='port to expose to tracer')
   reproduce_parser.add_argument('--num_runs',
                                 type=int,
                                 default=100,
@@ -1005,7 +1009,7 @@ def run_fuzzer(args):
 
 def reproduce(args):
   """Reproduces a specific test case from a specific project."""
-  return reproduce_impl(args.project, args.fuzzer_name, args.valgrind, args.tracer, args.num_runs,
+  return reproduce_impl(args.project, args.fuzzer_name, args.valgrind, args.tracer, args.tracer_port, args.num_runs,
                         args.e, args.fuzzer_args, args.testcase_path)
 
 
@@ -1014,6 +1018,7 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
     fuzzer_name,
     valgrind,
     tracer,
+    port,
     num_runs,
     env_to_add,
     fuzzer_args,
@@ -1035,7 +1040,7 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
     debugger = 'valgrind --tool=memcheck --track-origins=yes --leak-check=full'
 
   if tracer:
-    debugger = 'JAVA_OPTS="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=*:8787"'
+    debugger = 'JAVA_OPTS="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=*:%s"' % port
 
   if debugger:
     image_name = 'base-runner-debug'
@@ -1052,7 +1057,7 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
       '%s:/testcase' % _get_absolute_path(testcase_path),
       '-v',
       '%s:/java-tracer' % '/home/benjis/code/bug-benchmarks/trace-modeling/trace_collection_java/app/build/libs',
-      '-p', '8787:8787',
+      '-p', port + ':' + port,
       '-t',
       'gcr.io/oss-fuzz-base/%s' % image_name,
       'bash', '-c', "sed -i '25s/.*/if [ ! -e $TESTCASE ]; then/g' /usr/local/bin/reproduce; reproduce %s -runs=%d %s" % (fuzzer_name, num_runs, " ".join("-" + a for a in fuzzer_args)),
