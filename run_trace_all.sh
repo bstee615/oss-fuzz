@@ -6,6 +6,7 @@ quit_after_one=false
 #OPTIONS
 
 rm -rf trace_all_*.log $log_dir
+bash docker_clean.sh
 
 mkdir -p $log_dir
 mkdir -p $log_dir/logs-exe
