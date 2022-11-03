@@ -1001,7 +1001,7 @@ def run_fuzzer(args):
       BASE_RUNNER_IMAGE,
       'run_fuzzer',
       args.fuzzer_name,
-  ] + ["-" + a for a in args.fuzzer_args])
+  ] + [("--" if a.startswith("instrumentation_excludes") else "-") + a for a in args.fuzzer_args])
 
   # return docker_run(run_args, timeout=args.timeout, architecture=args.architecture)
   return docker_run(run_args, architecture=args.architecture)
@@ -1060,7 +1060,7 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
       '-p', port + ':' + port,
       '-t',
       'gcr.io/oss-fuzz-base/%s' % image_name,
-      'bash', '-c', "sed -i '25s/.*/if [ ! -e $TESTCASE ]; then/g' /usr/local/bin/reproduce; reproduce %s -runs=%d %s" % (fuzzer_name, num_runs, " ".join("-" + a for a in fuzzer_args)),
+      'bash', '-c', "sed -i '25s/.*/if [ ! -e $TESTCASE ]; then/g' /usr/local/bin/reproduce; reproduce %s -runs=%d %s" % (fuzzer_name, num_runs, " ".join([("--" if a.startswith("instrumentation_excludes") else "-") + a for a in fuzzer_args])),
   ]
 
   return run_function(run_args)
