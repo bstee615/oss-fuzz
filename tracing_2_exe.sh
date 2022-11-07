@@ -5,26 +5,25 @@ PROJECT_NAME="$1"
 FUZZER="$2"
 CORPUS_DIR="$3"
 PORT="$4"
-TIMEOUT="30m"
+TIMEOUT="60m"
 
 if [ ! -d $CORPUS_DIR ]
 then
     exec ls $CORPUS_DIR
 fi
 
-olddockers=$(docker ps -q)
+docker_name="reproduce_${PORT}"
+docker rm -f "reproduce_${PORT}"
 
-python3 infra/helper.py reproduce --tracer --num_runs 1 --tracer_port $PORT $PROJECT_NAME $FUZZER $CORPUS_DIR timeout=1800 instrumentation_excludes="**" &
+python3 infra/helper.py reproduce --tracer --num_runs 1 --tracer_port $PORT --container_name $docker_name $PROJECT_NAME $FUZZER $CORPUS_DIR timeout=3600 instrumentation_excludes="**" &
 PMAIN=$!
 
 # wait for docker container to start up, log ID
-sleep 10s
-newdockers=$(docker ps -q)
-diffdockers=$(python3 diffroomba.py OLD $olddockers NEW $newdockers)
-echo Launched docker containers: $diffdockers
+dockers=$(docker ps -q --filter name=$docker_name)
+echo Launched docker containers: $dockers
 
 # wait for main process, kill if timeout
-{ sleep $TIMEOUT; echo "TIMEOUT; KILLING $diffdockers and $PMAIN"; docker rm -f $diffdockers; kill -9 $PMAIN; pkill -9 -P $PMAIN; } &
+{ sleep $TIMEOUT; echo "TIMEOUT; KILLING $dockers and $PMAIN"; docker rm -f $dockers; kill -9 $PMAIN; pkill -9 -P $PMAIN; } &
 wait $PMAIN
 echo PMAIN $PMAIN exited with $?
 kill -9 %%
