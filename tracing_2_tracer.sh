@@ -5,7 +5,7 @@ PROJECT_NAME="$1"
 FUZZER="$2"
 log_dir="$3"
 PORT="$4"
-TIMEOUT="30m"
+TIMEOUT="60m"
 
 mkdir -p $log_dir
 
@@ -16,7 +16,7 @@ java -jar $tracer_jar -l $log_file -t dt_socket -p $PORT -m fuzzerTestOneInput &
 PMAIN=$!
 
 # wait for main process, kill if timeout
-{ sleep $TIMEOUT; echo "TIMEOUT; KILLING $PMAIN"; kill -9 $PMAIN; pkill -9 -P $PMAIN; echo "<timeout/>" >> $log_file } &
+{ sleep $TIMEOUT; echo "TIMEOUT; KILLING $PMAIN"; kill -9 $PMAIN; pkill -9 -P $PMAIN; echo "<timeout/>" >> $log_file; } &
 wait $PMAIN
 echo PMAIN $PMAIN exited with $?
 kill -9 %%
