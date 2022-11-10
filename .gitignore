@@ -14,3 +14,6 @@
 /corpora*/
 /traces*/
 angus-mail.zip
+*.json
+*.jsonl
+lib/
