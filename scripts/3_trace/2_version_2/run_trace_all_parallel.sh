@@ -19,7 +19,7 @@ echo Starting $num_workers workers at $(date)...
 
 for i in $(seq 0 $(( num_workers - 1 )))
 do
-    bash run_trace_all_worker.sh $log_dir $(( $base_port + $i )) $num_workers $i &> $log_dir/logs-worker/worker_$i.log &
+    bash $(dirname $0)/run_trace_all_worker.sh $log_dir $(( $base_port + $i )) $num_workers $i &> $log_dir/logs-worker/worker_$i.log &
 done
 
 trap "exit" INT TERM

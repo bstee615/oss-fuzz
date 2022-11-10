@@ -27,7 +27,7 @@ do
         tracer_log="$log_dir/logs-tracer/$id.log"
         port="8787"
 
-        bash tracing_2_exe.sh $PROJECT_NAME $FUZZER $corpus_dir $port &> $exe_log &
+        bash $(dirname $0)/../tracing_2_exe.sh $PROJECT_NAME $FUZZER $corpus_dir $port &> $exe_log &
         P1=$!
         
         sleep 3s
@@ -45,7 +45,7 @@ do
         done
         if [ "$should_trace" = true ]
         then
-            bash tracing_2_tracer.sh $PROJECT_NAME $FUZZER $log_dir $port &> $tracer_log &
+            bash $(dirname $0)/../tracing_2_tracer.sh $PROJECT_NAME $FUZZER $log_dir $port &> $tracer_log &
             P2=$!
             wait $P1 $P2
         fi

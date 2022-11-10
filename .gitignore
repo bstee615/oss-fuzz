@@ -7,11 +7,11 @@
 .venv
 /*.log
 /*.txt
-/corpus/
-/corpus-small/
-/corpora/
-/logs_*/
-/corpora*/
+corpora*
+corpus*
+*.xml
+*.xml.repair
+/logs/
 /traces*/
 angus-mail.zip
 *.json
