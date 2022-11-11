@@ -6,21 +6,23 @@
 # python3 infra/helper.py build_fuzzers --sanitizer $SAN --architecture $ARCH $PROJECT_NAME
 
 # tomcat ELEvaluationFuzzer
-PROJECT_NAME="$1"
+CORPUS_ROOT="$1"
+FUZZER_LOGS_ROOT="$2"
+TIMEOUT="$3"
+PROJECT_NAME="$4"
+FUZZER="$5"
 SAN="address"
-# SAN="$2"
 ARCH="x86_64"
-# ARCH="$3"
-FUZZER="$2"
-# FUZZER="$4"
 
-corpus_dir="corpora/$PROJECT_NAME/$SAN-$ARCH-$FUZZER"
+corpus_dir="$CORPUS_ROOT/$PROJECT_NAME/$SAN-$ARCH-$FUZZER"
 rm -rf $corpus_dir
 mkdir -p $corpus_dir
 
-logfile="logs_fuzzing/$PROJECT_NAME-$SAN-$ARCH-$FUZZER.log"
-mkdir -p logs_fuzzing
+logfile="$FUZZER_LOGS_ROOT/$PROJECT_NAME-$SAN-$ARCH-$FUZZER.log"
+mkdir -p $logfile
 
 echo "Arguments: Project=$PROJECT_NAME Sanitizer=$SAN Architecture=$ARCH FuzzTarget=$FUZZER CorpusDir=$corpus_dir"
 
-python3 infra/helper.py run_fuzzer --corpus-dir $corpus_dir $PROJECT_NAME $FUZZER max_total_time=60 seed=123 2>&1 | tee $logfile
+python infra/helper.py run_fuzzer --corpus-dir $corpus_dir $PROJECT_NAME $FUZZER max_total_time=$TIMEOUT seed=123 fork=1 ignore_crashes=1 2>&1 | tee $logfile
+
+echo Finished with $?
