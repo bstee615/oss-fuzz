@@ -3,20 +3,17 @@
 
 PROJECT_NAME="$1"
 FUZZER="$2"
-log_dir="$3"
+log_file="$3"
 PORT="$4"
-TIMEOUT="60m"
-
-mkdir -p $log_dir
+TIMEOUT="180m"
 
 tracer_jar="/home/benjis/code/bug-benchmarks/trace-modeling/trace_collection_java/app/build/libs/tracer.jar"
-log_file="$log_dir/trace-$PROJECT_NAME-$FUZZER.xml"
 
-java -jar $tracer_jar -l $log_file -t dt_socket -p $PORT -m fuzzerTestOneInput &
+java -jar $tracer_jar -l $log_file -t dt_socket -p $PORT -m fuzzerTestOneInput -v DEBUG &
 PMAIN=$!
 
 # wait for main process, kill if timeout
-{ sleep $TIMEOUT; echo "TIMEOUT; KILLING $PMAIN"; kill -9 $PMAIN; pkill -9 -P $PMAIN; echo "<timeout/>" >> $log_file; } &
+{ sleep $TIMEOUT; echo "$0: TIMEOUT; KILLING $PMAIN"; kill -9 $PMAIN; pkill -9 -P $PMAIN; sleep 10s; echo "<timeout/>" >> $log_file; } &
 wait $PMAIN
-echo PMAIN $PMAIN exited with $?
+echo "$0: PMAIN $PMAIN exited with $?"
 kill -9 %%

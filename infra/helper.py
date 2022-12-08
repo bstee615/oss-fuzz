@@ -995,6 +995,10 @@ def run_fuzzer(args):
         '{corpus_dir}:/tmp/{fuzzer}_corpus'.format(corpus_dir=corpus_dir,
                                                    fuzzer=args.fuzzer_name)
     ])
+    run_args.extend([
+        '--name',
+        'fuzzmeister',
+    ])
 
   run_args.extend([
       '-v',

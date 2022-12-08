@@ -7,11 +7,11 @@ import pandas as pd
 
 from class_parser import get_child, get_children, get_method_node
 
-with open("data/4_postprocess/examples_2_fix_filtering/examples_sorted.jsonl") as inf:
+with open("examples_sorted.jsonl") as inf:
     num_lines = sum(1 for _ in inf)
 
 all_rows = []
-with jsonlines.open("data/4_postprocess/examples_2_fix_filtering/examples_sorted.jsonl") as inf, jsonlines.open("data/4_postprocess/examples_2_fix_filtering/examples_sorted_clean.jsonl", "w") as outf:
+with jsonlines.open("examples_sorted.jsonl") as inf, jsonlines.open("examples_sorted_clean.jsonl", "w") as outf:
     # inf = itertools.islice(inf, 1000)
     took = 0
     with tqdm.tqdm(inf, initial=took, total=num_lines) as pbar:

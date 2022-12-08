@@ -7,11 +7,15 @@ import tqdm
 from class_parser import get_method_node
 
 def ambiguate(var):
-    if isinstance(var, str):
+    if isinstance(var, str) or var["tag"] == "event-thread-mismatch":
         # unhandled node type, probably event thread mismatch
         # print("STRING", var)
         return None
-    text = var["text"]
+    try:
+        text = var["text"]
+    except KeyError:
+        print("unhandled", var)
+        return None
     if var["serializer"] == "TOSTRING":
         if "@" in text:
             if text.startswith('\"') and text.endswith('\"'):
@@ -71,10 +75,14 @@ limit = False
 if limit:
     num_lines = None
 else:
-    with open("examples_with_forward.jsonl") as inf:
-        num_lines = sum(1 for _ in inf)
-with jsonlines.open("examples_with_forward.jsonl") as inf, jsonlines.open("examples_deduplicated.jsonl", "w") as outf:
-    it = inf
+    num_lines = 0
+    with open("examples_cut0.jsonl") as inf:
+        num_lines += sum(1 for _ in inf)
+    with open("examples_cut1.jsonl") as inf:
+        num_lines += sum(1 for _ in inf)
+with jsonlines.open("examples_cut0.jsonl") as inf0, jsonlines.open("examples_cut1.jsonl") as inf1, jsonlines.open("examples_deduplicated.jsonl", "w") as outf:
+    it = itertools.chain(inf0, inf1)
+    # it = inf
     if limit:
         it = itertools.islice(it, 5)
     with tqdm.tqdm(it, total=num_lines) as pbar:

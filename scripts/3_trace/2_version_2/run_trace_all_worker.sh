@@ -4,56 +4,47 @@
 quit_after_one=false
 
 log_dir="$1"
-port="$2"
-num_workers="$3"
-worker_id="$4"
+base_port="$2"
+worker_id="$3"
+port=$(( $base_port + $worker_id ))
+corpus_root="$4"
+PROJECT_NAME="$5"
+FUZZER="$6"
+echo RUNNING $log_dir $base_port $worker_id $port $corpus_root $PROJECT_NAME $FUZZER
 #OPTIONS
 
-data_file="$log_dir/logs-worker/worker_${worker_id}_work.txt"
-python3 $(dirname $0)/splitsville.py failed-projects.txt $num_workers $worker_id > $data_file
+SAN="address"
+ARCH="x86_64"
 
-while read l
+corpus_dir="$corpus_root/$PROJECT_NAME/$SAN-$ARCH-$FUZZER"
+id="$PROJECT_NAME-$FUZZER"
+exe_log="$log_dir/logs-exe/$id.log"
+tracer_log="$log_dir/logs-tracer/$id.log"
+xml_log="$log_dir/logs-xmls/trace-$PROJECT_NAME-$FUZZER.xml"
+
+bash $(dirname $0)/../2_exe.sh $PROJECT_NAME $FUZZER $corpus_dir $port &> $exe_log &
+P1=$!
+
+sleep 3s
+should_trace=true
+rm -f $tracer_log
+while ! grep -q "Listening for transport dt_socket at address: $port" $exe_log
 do
-    p=$(echo $l | cut -d' ' -f1)
-    f=$(echo $l | cut -d' ' -f2)
-    # echo running $p $f... 1>&2
-
-    PROJECT_NAME="$p"
-    FUZZER="$f"
-    SAN="address"
-    ARCH="x86_64"
-    corpus_dir="corpora-1m/$PROJECT_NAME/$SAN-$ARCH-$FUZZER"
-    id="$PROJECT_NAME-$FUZZER"
-    exe_log="$log_dir/logs-exe/$id.log"
-    tracer_log="$log_dir/logs-tracer/$id.log"
-
-    bash $(dirname $0)/../tracing_2_exe.sh $PROJECT_NAME $FUZZER $corpus_dir $port &> $exe_log &
-    P1=$!
-    
-    sleep 3s
-    should_trace=true
-    while ! grep -q "Listening for transport dt_socket at address: $port" $exe_log
-    do
-        sleep 1s
-        if [ ! -e /proc/$P1 ]
-        then
-            echo Process $P1 for $p-$f quit. Skipping. >&2
-            should_trace=false
-            break
-        fi
-        echo Waiting on $P1 $exe_log for listener... >&2
-    done
-    if [ "$should_trace" = true ]
+    sleep 1s
+    if [ ! -e /proc/$P1 ]
     then
-        bash $(dirname $0)/../tracing_2_tracer.sh $PROJECT_NAME $FUZZER $log_dir $port &> $tracer_log &
-        P2=$!
-        wait $P1 $P2
-    fi
-    echo Traced $p $f
-    if [ $quit_after_one = true ]
-    then
+        echo Process $P1 for $PROJECT_NAME-$FUZZER quit. Skipping.
+        should_trace=false
         break
     fi
-done < $data_file | tqdm --total $(cat $data_file | wc -l) >> /dev/null
+    echo Waiting on $P1 $exe_log for listener...
+done &>> $tracer_log
+if [ "$should_trace" = true ]
+then
+    bash $(dirname $0)/../2_tracer.sh $PROJECT_NAME $FUZZER $xml_log $port &>> $tracer_log &
+    P2=$!
+    wait $P1 $P2
+fi
+echo "$0: Done with $PROJECT_NAME $FUZZER"
 
-echo "Worker $worker_id/$num_workers (port $port) done. Logged to $log_dir."
+echo "Worker $worker_id (port $port) done. Logged to $log_dir."

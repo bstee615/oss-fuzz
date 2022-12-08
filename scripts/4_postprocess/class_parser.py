@@ -47,33 +47,42 @@ def get_children(node, fn):
 def get_child(node, fn):
     return next(iter(get_children(node, fn)))
 
+def get_matching_method(class_body, method_name, lineno):
+    methods = get_children(class_body, lambda c: c.type == "method_declaration")
+    for method in methods:
+        method_ident = get_child(method, lambda c: c.type == "identifier")
+        start_line = method.start_point[0]
+        end_line = method.end_point[0]
+        if method_ident.text.decode() == method_name and (start_line <= lineno <= end_line):
+            return method
+
+# def return_innerclass_method(method_name, lineno):
+#     def fn(node, method_name, lineno):
+#         if node.type == "class_declaration":
+#     return functools.partial(fn, method_name=method_name, lineno=lineno)
 
 def return_method(class_name, method_name, lineno):
     def fn(node, class_name, method_name, lineno, **kwargs):
         if node.type == "class_declaration":
             ident = get_child(node, lambda c: c.type == "identifier")
             if ident.text.decode() == class_name:
-                body = get_child(node, lambda c: c.type == "class_body")
-                methods = get_children(body, lambda c: c.type == "method_declaration")
-                for method in methods:
-                    method_ident = get_child(method, lambda c: c.type == "identifier")
-                    start_line = method.start_point[0]
-                    end_line = method.end_point[0]
-                    if method_ident.text.decode() == method_name and (start_line <= lineno <= end_line):
-                        return method
-        else:
-            return None
+                class_body = get_child(node, lambda c: c.type == "class_body")
+                # if is_inner_class:
+                #     return dfs(class_body, fn=return_innerclass_method)
+                # else:
+                #     return get_matching_method(class_body, method_name, lineno)
+                return get_matching_method(class_body, method_name, lineno)
 
     return functools.partial(fn, class_name=class_name, method_name=method_name, lineno=lineno)
 
 
-def dfs(node, fn):
-    result = fn(node)
+def dfs(node, fn, indent=0):
+    result = fn(node, indent=indent)
     if result:
         return result
     else:
         for ch in node.children:
-            result = dfs(ch, fn)
+            result = dfs(ch, fn, indent+1)
             if result:
                 return result
 
@@ -88,14 +97,15 @@ def print_node(node, indent=0, **kwargs):
 def get_source_file(repo, class_name_fq):
     class_filepath = class_name_fq.replace(".", "/")
     actual_filepaths = list(Path(repo.working_dir).rglob("*/" + class_filepath + ".java"))
-    assert len(actual_filepaths) == 1
+    assert len(actual_filepaths) == 1, actual_filepaths
     return actual_filepaths[0]
 
 def get_method_node(actual_filepath, class_name_fq, method_name, lineno):
     class_name = class_name_fq.rsplit(".", maxsplit=1)[1]
     tree = parse_file(actual_filepath)
+
+    # dfs(tree.root_node, fn=print_node)
     method_node = dfs(tree.root_node, fn=return_method(class_name, method_name, lineno))
-    # print_node(method_node)
 
     return method_node
 
