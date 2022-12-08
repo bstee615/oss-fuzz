@@ -16,19 +16,26 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 import com.code_intelligence.jazzer.api.FuzzedDataProvider;
+import recorder.MyRecordedFuzzedDataProvider;
 
 import com.sun.mail.util.ASCIIUtility;
 import java.lang.NumberFormatException;
 
 public class ASCIIUtilityFuzzer {
   public static void fuzzerTestOneInput(FuzzedDataProvider data) {
+    try (data = new MyRecordedFuzzedDataProvider(data, "", "ASCIIUtilityFuzzer")) {
+    try {
+    data.markBeginFuzzer();
     byte[] input = data.consumeRemainingAsBytes();
-    try{
+    try
+    {
       ASCIIUtility.parseInt(input, 0, input.length);
       ASCIIUtility.parseLong(input, 0, input.length);
     }
     catch(NumberFormatException e){}
 
     ASCIIUtility.toString(input);
+    } finally { data.markEndFuzzer(); }
+    } catch (Exception ex) { }
   }
 }

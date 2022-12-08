@@ -351,6 +351,9 @@ def get_parser():  # pylint: disable=too-many-statements
                                 type=str,
                                 default="8787",
                                 help='port to expose to tracer')
+  reproduce_parser.add_argument('--instrumentation',
+                                action='store_true',
+                                help='run with instrumentation')
   reproduce_parser.add_argument('--container_name',
                                 help='what to name the container')
   reproduce_parser.add_argument('--num_runs',
@@ -1015,7 +1018,7 @@ def run_fuzzer(args):
 
 def reproduce(args):
   """Reproduces a specific test case from a specific project."""
-  return reproduce_impl(args.project, args.fuzzer_name, args.valgrind, args.tracer, args.tracer_port, args.container_name, args.num_runs,
+  return reproduce_impl(args.project, args.fuzzer_name, args.valgrind, args.tracer, args.tracer_port, args.instrumentation, args.container_name, args.num_runs,
                         args.e, args.fuzzer_args, args.testcase_path)
 
 
@@ -1025,6 +1028,7 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
     valgrind,
     tracer,
     port,
+    instrumentation,
     container_name,
     num_runs,
     env_to_add,
@@ -1049,6 +1053,11 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
   if tracer:
     debugger = 'JAVA_OPTS="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=*:%s"' % port
 
+  if instrumentation:
+    # debugger = 'JAVA_OPTS="-javaagent:/instrumentation.jar -cp /recorder.jar"'
+    debugger = 'JAVA_OPTS="-javaagent:/instrumentation.jar"'
+    # fuzzer_args += ["cp=/recorder.jar"]
+
   if debugger:
     image_name = 'base-runner-debug'
     env += ['DEBUGGER=' + debugger]
@@ -1064,12 +1073,17 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
       '%s:/testcase' % _get_absolute_path(testcase_path),
       '-v',
       '%s:/java-tracer' % '/home/benjis/code/bug-benchmarks/trace-modeling/trace_collection_java/app/build/libs',
+      '-v',
+      '%s:/instrumentation.jar' % '/home/benjis/code/java-instrumentation/build/libs/java-instrumentation-1.0-SNAPSHOT.jar',
+      '-v',
+      '%s:/recorder.jar' % '/recorder/recorder-0.0.jar',
       '-p', port + ':' + port,
       '-t',
       '--name', container_name,
       'gcr.io/oss-fuzz-base/%s' % image_name,
-      'bash', '-c', "sed -i '25s/.*/if [ ! -e $TESTCASE ]; then/g' /usr/local/bin/reproduce; reproduce %s -runs=%d %s" % (fuzzer_name, num_runs, " ".join([("--" if a.startswith("instrumentation_excludes") else "-") + a for a in fuzzer_args])),
+      'bash', '-c', "sed -i '25s/.*/if [ ! -e $TESTCASE ]; then/g' /usr/local/bin/reproduce; reproduce %s -runs=%d %s" % (fuzzer_name, num_runs, " ".join([("--" if a.startswith("instrumentation_excludes") or a.startswith("cp") else "-") + a for a in fuzzer_args])),
   ]
+  print("docker run", " ".join(a if ' ' not in a else '"' + a + '"' for a in run_args))
 
   return run_function(run_args)
 

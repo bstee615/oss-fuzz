@@ -26,4 +26,6 @@ RUN git clone --depth 1 https://github.com/eclipse-ee4j/angus-mail.git angus-mai
 
 COPY build.sh $SRC/
 COPY *Fuzzer.java $SRC/
+COPY recorder-0.0.jar $SRC/recorder.jar
+RUN (mkdir tmp; cd tmp; unzip -uo $JAZZER_API_PATH; unzip -uo $SRC/recorder.jar; jar -cvf $JAZZER_API_PATH .)
 WORKDIR $SRC/angus-mail

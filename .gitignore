@@ -16,5 +16,10 @@ corpus*
 angus-mail.zip
 *.json
 *.jsonl
-lib/
+/lib/
 fuzzlogs*/
+build1/
+tmp/
+*.class
+gradle-7.6/
+gradle-7.6-bin.zip
