@@ -97,7 +97,7 @@ def print_node(node, indent=0, **kwargs):
 def get_source_file(repo, class_name_fq):
     class_filepath = class_name_fq.replace(".", "/")
     actual_filepaths = list(Path(repo.working_dir).rglob("*/" + class_filepath + ".java"))
-    assert len(actual_filepaths) == 1, actual_filepaths
+    assert len(actual_filepaths) == 1, (actual_filepaths, repo, class_name_fq)
     return actual_filepaths[0]
 
 def get_method_node(actual_filepath, class_name_fq, method_name, lineno):

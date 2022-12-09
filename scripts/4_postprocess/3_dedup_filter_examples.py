@@ -4,7 +4,11 @@ import jsonlines
 import itertools
 import tqdm
 
-from class_parser import get_method_node
+import argparse
+parser = argparse.ArgumentParser(description='Description of your program')
+parser.add_argument('input_file')
+parser.add_argument('output_file')
+args = parser.parse_args()
 
 def ambiguate(var):
     if isinstance(var, str) or var["tag"] == "event-thread-mismatch":
@@ -76,13 +80,10 @@ if limit:
     num_lines = None
 else:
     num_lines = 0
-    with open("examples_cut0.jsonl") as inf:
+    with open(args.input_file) as inf:
         num_lines += sum(1 for _ in inf)
-    with open("examples_cut1.jsonl") as inf:
-        num_lines += sum(1 for _ in inf)
-with jsonlines.open("examples_cut0.jsonl") as inf0, jsonlines.open("examples_cut1.jsonl") as inf1, jsonlines.open("examples_deduplicated.jsonl", "w") as outf:
-    it = itertools.chain(inf0, inf1)
-    # it = inf
+with jsonlines.open(args.input_file) as inf, jsonlines.open(args.output_file, "w") as outf:
+    it = inf
     if limit:
         it = itertools.islice(it, 5)
     with tqdm.tqdm(it, total=num_lines) as pbar:

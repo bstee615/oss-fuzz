@@ -2,12 +2,16 @@
 import jsonlines
 import re
 import tqdm
-from collections import OrderedDict
+import argparse
+parser = argparse.ArgumentParser(description='Description of your program')
+parser.add_argument('input_file')
+parser.add_argument('output_file')
+args = parser.parse_args()
 
-with open("examples_deduplicated.jsonl") as inf:
+with open(args.input_file) as inf:
     num_lines = sum(1 for _ in inf)
 
-with jsonlines.open("examples_deduplicated.jsonl") as inf, jsonlines.open("examples_sorted.jsonl", "w") as outf:
+with jsonlines.open(args.input_file) as inf, jsonlines.open(args.output_file, "w") as outf:
     def write_examples(examples):
         """sort and output all project examples"""
         for out_example in sorted(examples, key=lambda data: (data["class"], data["method"], data["start_point"][0])):
