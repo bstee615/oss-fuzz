@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM gcr.io/oss-fuzz-base/base-builder-jvm
+FROM gcr.io/oss-fuzz-base/base-builder-jvm:recorder-1.0.0
 
 RUN curl -L https://dlcdn.apache.org/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.zip -o maven.zip && \
     unzip maven.zip -d $SRC/maven && \
@@ -26,6 +26,4 @@ RUN git clone --depth 1 https://github.com/eclipse-ee4j/angus-mail.git angus-mai
 
 COPY build.sh $SRC/
 COPY *Fuzzer.java $SRC/
-COPY recorder-0.0.jar $SRC/recorder.jar
-RUN (mkdir tmp; cd tmp; unzip -uo $JAZZER_API_PATH; unzip -uo $SRC/recorder.jar; jar -cvf $JAZZER_API_PATH .)
 WORKDIR $SRC/angus-mail

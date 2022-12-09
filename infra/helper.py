@@ -1059,7 +1059,7 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
     # fuzzer_args += ["cp=/recorder.jar"]
 
   if debugger:
-    image_name = 'base-runner-debug'
+    # image_name = 'base-runner-debug'
     env += ['DEBUGGER=' + debugger]
 
   if env_to_add:
@@ -1075,13 +1075,11 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
       '%s:/java-tracer' % '/home/benjis/code/bug-benchmarks/trace-modeling/trace_collection_java/app/build/libs',
       '-v',
       '%s:/instrumentation.jar' % '/home/benjis/code/java-instrumentation/build/libs/java-instrumentation-1.0-SNAPSHOT.jar',
-      '-v',
-      '%s:/recorder.jar' % '/recorder/recorder-0.0.jar',
       '-p', port + ':' + port,
       '-t',
       '--name', container_name,
-      'gcr.io/oss-fuzz-base/%s' % image_name,
-      'bash', '-c', "sed -i '25s/.*/if [ ! -e $TESTCASE ]; then/g' /usr/local/bin/reproduce; reproduce %s -runs=%d %s" % (fuzzer_name, num_runs, " ".join([("--" if a.startswith("instrumentation_excludes") or a.startswith("cp") else "-") + a for a in fuzzer_args])),
+      'gcr.io/oss-fuzz-base/%s:recorder-1.0.0' % image_name,
+      'bash', '-c', "sed -i '25s/.*/if [ ! -e $TESTCASE ]; then/g' /usr/local/bin/reproduce; reproduce %s -runs=%d %s; ls /fuzzerOutput_*.jsonl; cat /fuzzerOutput_*.jsonl" % (fuzzer_name, num_runs, " ".join([("--" if a.startswith("instrumentation_excludes") or a.startswith("cp") else "-") + a for a in fuzzer_args])),
   ]
   print("docker run", " ".join(a if ' ' not in a else '"' + a + '"' for a in run_args))
 

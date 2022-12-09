@@ -98,3 +98,6 @@ COPY bad_build_check \
     test_one.py \
     python_coverage_runner_help.py \
     /usr/local/bin/
+
+ENV RECORDER_API_PATH "/usr/local/lib/recorder_deploy.jar"
+COPY recorder-1.0.0.jar ${RECORDER_API_PATH}

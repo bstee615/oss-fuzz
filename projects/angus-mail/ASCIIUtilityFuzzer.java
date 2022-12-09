@@ -23,9 +23,10 @@ import java.lang.NumberFormatException;
 
 public class ASCIIUtilityFuzzer {
   public static void fuzzerTestOneInput(FuzzedDataProvider data) {
-    try (data = new MyRecordedFuzzedDataProvider(data, "", "ASCIIUtilityFuzzer")) {
     try {
-    data.markBeginFuzzer();
+    data = new MyRecordedFuzzedDataProvider(data, "", "ASCIIUtilityFuzzer");
+    try {
+    ((MyRecordedFuzzedDataProvider)data).markBeginFuzzer();
     byte[] input = data.consumeRemainingAsBytes();
     try
     {
@@ -35,7 +36,7 @@ public class ASCIIUtilityFuzzer {
     catch(NumberFormatException e){}
 
     ASCIIUtility.toString(input);
-    } finally { data.markEndFuzzer(); }
+    } finally { ((MyRecordedFuzzedDataProvider)data).markEndFuzzer(); ((MyRecordedFuzzedDataProvider)data).close(); }
     } catch (Exception ex) { }
   }
 }
