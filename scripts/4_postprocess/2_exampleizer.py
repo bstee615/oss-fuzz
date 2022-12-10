@@ -187,13 +187,15 @@ def process_one(call, xml, repo, printed_methods):
 
 import json
 
-from multiprocessing import Pool
+from multiprocessing import Pool, Manager
 import functools
+from collections import defaultdict
 
-failed_project = 0
-failed_example = 0
-missing_method = 0
-skipped_inner_class = 0
+all_results = defaultdict(int)
+# failed_project = 0
+# failed_example = 0
+# missing_method = 0
+# skipped_inner_class = 0
 
 # man = Manager()
 
@@ -213,39 +215,36 @@ with open(args.output_file, "w") as outf:
                 calls = get_calls_iter(iter)
                 # should_leave = i == len(project_xmls)-1
                 try:
-                    printed_methods = set()
+                    # printed_methods = set()
                     # for i, call in enumerate(tqdm.tqdm(calls, f"XML ({i+1}/{len(project_xmls)}) {xml}", total=num_calls, leave=False)):
                     # queue = man.Queue(maxsize=12800)
-                    with Pool(args.nproc) as pool:
-                        for result in tqdm.tqdm(
-                                                pool.imap(functools.partial(process_one, repo=repo, xml=xml, printed_methods=printed_methods), calls),
-                                                desc=f"XML ({i+1}/{len(project_xmls)}) {xml}",
-                                                total=num_calls,
-                                                leave=False
-                                                ):
-                            try:
-                                if result["result"] == "success":
-                                    outf.write(json.dumps(result["data"]) + "\n")
-                                elif result["result"] == "missing_method":
-                                    missing_method += 1
-                                elif result["result"] == "skipped_inner_class":
-                                    skipped_inner_class += 1
-                            except Exception:
-                                failed_example += 1
-                                if method not in printed_methods:
-                                    print("failed exampling method call", project, repo, i, method)
-                                    print(traceback.format_exc())
-                                    printed_methods.add(method)
+                    with Manager() as man:
+                        with man.Pool(args.nproc) as pool:
+                            printed_methods = man.dict()
+                            it = pool.imap(functools.partial(process_one, repo=repo, xml=xml, printed_methods=printed_methods), calls)
+                            with tqdm.tqdm(it,
+                                            desc=f"XML ({i+1}/{len(project_xmls)}) {xml}",
+                                            total=num_calls,
+                                            leave=False
+                                            ) as pbar:
+                                for result in pbar:
+                                    if result["result"] == "success":
+                                        outf.write(json.dumps(result["data"]) + "\n")
+                                    all_results[result["result"]]
+                                    pbar.set_postfix(all_results)
                 except Exception:
+                    all_results["failed_xml"] += 1
                     print("ERROR in file:", project, str(xml))
                     print(traceback.format_exc())
         except Exception:
-            failed_project += 1
+            all_results["failed_project"] += 1
             print("failed example-izing", project)
             print(traceback.format_exc())
-print("FAILED", failed_project, "PROJECTS")
-print("FAILED", failed_example, "EXAMPLES")
-print("MISSED", missing_method, "METHODS")
-print("SKIPPED", skipped_inner_class, "INNER CLASSES")
+# print("FAILED", failed_project, "PROJECTS")
+# print("FAILED", failed_example, "EXAMPLES")
+# print("MISSED", missing_method, "METHODS")
+# print("SKIPPED", skipped_inner_class, "INNER CLASSES")
+print("RESULTS:")
+print(json.dumps(all_results, indent=2))
 
 # %%
