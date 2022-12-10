@@ -11,10 +11,19 @@ parser.add_argument('output_file')
 args = parser.parse_args()
 
 def ambiguate(var):
-    if isinstance(var, str) or var["tag"] == "event-thread-mismatch":
+    if isinstance(var, str):
         # unhandled node type, probably event thread mismatch
         # print("STRING", var)
         return None
+    if var["tag"] == "event-thread-mismatch":
+        return {
+            "tag": var["tag"],
+        }
+    if var["tag"] == "exception":
+        return {
+            "tag": var["tag"],
+            "xml": var["xml"].strip(),
+        }
     try:
         text = var["text"]
     except KeyError:
@@ -26,6 +35,7 @@ def ambiguate(var):
                 text = text[1:-1]
             text = text[:text.find("@")]
     return {
+        "tag": var["tag"],
         "name": var["name"],
         "type": var["type"],
         "source": var["source"],
