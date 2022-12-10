@@ -44,7 +44,9 @@ with jsonlines.open(args.input_file) as inf, jsonlines.open(args.output_file, "w
             "code",
             "entry_variables",
             "file_path",
+            "xml_file_path",
             "attributes",
+            "steps",
         ]
         example = {k: example[k] for k in key_order}
         if current_project is None:
