@@ -91,99 +91,107 @@ def process_one(call, xml, repo, printed_methods):
         }
     class_name = data["class_name"]
     method_name = data["method_name"]
+    try:
+        def serialize(node):
+            if node.tag == "variable":
+                text = node.text
+                if node.attrib["serializer"] == "ARRAY":
+                    text = text.strip()
+                elif node.attrib["serializer"] == "TOSTRING":
+                    if text.startswith('\"') and text.endswith('\"'):
+                        # text = text[1:-1]
+                        m = re.search(r"@[\da-z]{8}", text)
+                        if m is not None:
+                            text = text[:m.start()] + text[m.end():]
+                if "age" in node.attrib:
+                    del node.attrib["age"]
+                return {
+                    "tag": node.tag,
+                    **node.attrib,
+                    "text": text,
+                }
+            else:
+                return {
+                    "tag": node.tag,
+                    **node.attrib,
+                    "xml": ET.tostring(node, encoding="unicode"),
+                }
 
-    def serialize(node):
-        if node.tag == "variable":
-            text = node.text
-            if node.attrib["serializer"] == "ARRAY":
-                text = text.strip()
-            elif node.attrib["serializer"] == "TOSTRING":
-                if text.startswith('\"') and text.endswith('\"'):
-                    # text = text[1:-1]
-                    m = re.search(r"@[\da-z]{8}", text)
-                    if m is not None:
-                        text = text[:m.start()] + text[m.end():]
-            if "age" in node.attrib:
-                del node.attrib["age"]
+        src_fpath = get_source_file(repo, class_name)
+        # com.sun.mail.util.ASCIIUtility:116
+        lineno = int(call.attrib["location"].split(":")[1])
+        method_node = get_method_node(src_fpath, class_name, method_name, lineno)
+        if method_node is None:
+            if method not in printed_methods:
+                print(f"no such method {project=} {class_name=} {method_name=}")
+                printed_methods[(project, class_name, method_name)] = 0
+            printed_methods[(project, class_name, method_name)] += 1
+            return {
+                "result": "missing_method",
+            }
+        assert method_node is not None, method_node
+        ifw = is_forward(method_node)
+        method_code = method_node.text.decode()
+        
+        call_attrib = call.attrib
+        steps = []
+        entry_variables = None
+        for child in call:
+            if child.tag == "call":
+                pass
+            elif child.tag == "tracepoint":
+                steps.append(child)
+                if child.attrib["type"] == "entry":
+                    entry_variables = [serialize(v) for v in child]
+            else:
+                steps.append(child)
+        assert entry_variables is not None, f"malformed trace: {call}, {repo}"
+
+        def step_izer(node):
+            """Convert <tracepoint> tag into dict."""
+            variables = [serialize(v) for v in node]
+            lineno = int(node.attrib["location"].split(":")[1])
             return {
                 "tag": node.tag,
-                "text": text,
                 **node.attrib,
+                "variables": variables,
+                "relative_lineno": lineno - method_node.start_point[0],
+                "lineno": lineno,
             }
-        else:
-            return {
-                "tag": node.tag,
-                "xml": ET.tostring(node, encoding="unicode"),
-            }
+        steps_data = []
+        for node in steps:
+            if node.tag == "tracepoint":
+                steps_data.append(step_izer(node))
+            else:
+                steps_data.append({
+                    "tag": node.tag,
+                    "text": node.text,
+                    **node.attrib,
+                })
 
-    src_fpath = get_source_file(repo, class_name)
-    # com.sun.mail.util.ASCIIUtility:116
-    lineno = int(call.attrib["location"].split(":")[1])
-    method_node = get_method_node(src_fpath, class_name, method_name, lineno)
-    if method_node is None:
+        return {
+            "result": "success",
+            "data": {
+                "project": project,
+                "class": class_name,
+                "method": method_name,
+                "is_forward": ifw,
+                "xml_file_path": str(xml.absolute()),
+                "file_path": str(src_fpath.absolute()),
+                "start_point": method_node.start_point,
+                "end_point": method_node.end_point,
+                "code": method_code,
+                "entry_variables": entry_variables,
+                "attributes": call_attrib,
+                "steps": steps_data,
+            }
+        }
+    except Exception:
+        failed_example += 1
         if method not in printed_methods:
-            print("no such method", project, src_fpath, class_name, method_name, lineno)
-            printed_methods.add(method)
-        return {
-            "result": "missing_method",
-        }
-    assert method_node is not None, method_node
-    ifw = is_forward(method_node)
-    method_code = method_node.text.decode()
-    
-    call_attrib = call.attrib
-    steps = []
-    entry_variables = None
-    for child in call:
-        if child.tag == "call":
-            pass
-        elif child.tag == "tracepoint":
-            steps.append(child)
-            if child.attrib["type"] == "entry":
-                entry_variables = [serialize(v) for v in child]
-        else:
-            steps.append(child)
-    assert entry_variables is not None, f"malformed trace: {call}, {repo}"
-
-    def step_izer(node):
-        """Convert <tracepoint> tag into dict."""
-        variables = [serialize(v) for v in node]
-        lineno = int(node.attrib["location"].split(":")[1])
-        return {
-            "tag": node.tag,
-            "variables": variables,
-            "relative_lineno": lineno - method_node.start_point[0],
-            "lineno": lineno,
-            **node.attrib,
-        }
-    steps_data = []
-    for node in steps:
-        if node.tag == "tracepoint":
-            steps_data.append(step_izer(node))
-        else:
-            steps_data.append({
-                "tag": node.tag,
-                "text": node.text,
-                **node.attrib,
-            })
-
-    return {
-        "result": "success",
-        "data": {
-            "project": project,
-            "class": class_name,
-            "method": method_name,
-            "is_forward": ifw,
-            "xml_file_path": str(xml.absolute()),
-            "file_path": str(src_fpath.absolute()),
-            "start_point": method_node.start_point,
-            "end_point": method_node.end_point,
-            "code": method_code,
-            "entry_variables": entry_variables,
-            "attributes": call_attrib,
-            "steps": steps_data,
-        }
-    }
+            print(f"failed exampling method call {project=} {class_name=} {method_name=}\n{traceback.format_exc()}")
+            printed_methods[(project, class_name, method_name)] = 0
+        printed_methods[(project, class_name, method_name)] += 1
 
 import json
 
