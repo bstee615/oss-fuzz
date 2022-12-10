@@ -63,10 +63,17 @@ def get_matching_method(class_body, method_name, lineno):
 
 def return_method(class_name, method_name, lineno):
     def fn(node, class_name, method_name, lineno, **kwargs):
-        if node.type == "class_declaration":
+        decl_nodes = {
+            "class_declaration": "class_body",
+            "enum_declaration": "enum_body",
+        }
+        if node.type in decl_nodes.keys():
             ident = get_child(node, lambda c: c.type == "identifier")
             if ident.text.decode() == class_name:
-                class_body = get_child(node, lambda c: c.type == "class_body")
+                body_type = decl_nodes[node.type]
+                class_body = get_child(node, lambda c: c.type == body_type)
+                if node.type == "enum_declaration":
+                    class_body = get_child(class_body, lambda c: c.type == "enum_body_declarations")
                 # if is_inner_class:
                 #     return dfs(class_body, fn=return_innerclass_method)
                 # else:
@@ -100,11 +107,12 @@ def get_source_file(repo, class_name_fq):
     assert len(actual_filepaths) == 1, (actual_filepaths, repo, class_name_fq)
     return actual_filepaths[0]
 
-def get_method_node(actual_filepath, class_name_fq, method_name, lineno):
+def get_method_node(actual_filepath, class_name_fq, method_name, lineno, do_print=False):
     class_name = class_name_fq.rsplit(".", maxsplit=1)[1]
     tree = parse_file(actual_filepath)
 
-    # dfs(tree.root_node, fn=print_node)
+    if do_print:
+        dfs(tree.root_node, fn=print_node)
     method_node = dfs(tree.root_node, fn=return_method(class_name, method_name, lineno))
 
     return method_node
@@ -114,6 +122,14 @@ def is_forward(method_node):
     block_stmts = get_children(block, lambda n: n.is_named)
     return len(block_stmts) == 1 and block_stmts[0].type == "return_statement"
 
+
+# %%
+# no such method checker-framework /home/benjis/code/bug-benchmarks/oss-fuzz/repos/checker-framework/checker-qual/src/main/java/org/checkerframework/checker/formatter/qual/ConversionCategory.java org.checkerframework.checker.formatter.qual.ConversionCategory fromConversionChar 198
+src_fpath = "/home/benjis/code/bug-benchmarks/oss-fuzz/repos/checker-framework/checker-qual/src/main/java/org/checkerframework/checker/formatter/qual/ConversionCategory.java"
+class_name = "org.checkerframework.checker.formatter.qual.ConversionCategory"
+method_name = "fromConversionChar"
+lineno = 198
+print(get_method_node(src_fpath, class_name, method_name, lineno, do_print=False))
 
 
 # %%
@@ -129,5 +145,3 @@ if __name__ == "__main__":
     print(method1, fwd1)
     fwd2 = is_forward(method2)
     print(method2, fwd2)
-
-# %%
