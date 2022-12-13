@@ -1,0 +1,5 @@
+WriterBasedJsonGeneratorFuzzer
+ParseNextTokenFuzzer
+JsonFuzzer
+UTF8GeneratorFuzzer
+DataInputFuzzer

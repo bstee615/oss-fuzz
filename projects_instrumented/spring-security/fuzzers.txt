@@ -1,0 +1,11 @@
+Utf8Fuzzer
+InMemoryUserDetailsManagerChangePasswordFuzzer
+AclFormattingUtilsFuzzer
+BindAuthenticatorFuzzer
+BCryptPasswordEncoderFuzzer
+HexFuzzer
+ClientRegistrationFuzzer
+OAuth2AccessTokenFuzzer
+EncodingUtilsConcatenateFuzzer
+StrictHttpFirewallFuzzer
+NimbusJwtEncoderFuzzer

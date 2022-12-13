@@ -1,0 +1,15 @@
+MathSimplexSolverFuzzer
+ImagingJpegFuzzer
+CompressSevenZFuzzer
+ImagingGifFuzzer
+CompressZipFuzzer
+GeometryTextFuzzer
+GeometryStlTextFuzzer
+MathClusteringFuzzer
+GeometryObjFuzzer
+MathDistanceMeasureFuzzer
+ImagingBmpFuzzer
+CompressTarFuzzer
+GeometryStlBinaryFuzzer
+ImagingPngFuzzer
+ImagingTiffFuzzer

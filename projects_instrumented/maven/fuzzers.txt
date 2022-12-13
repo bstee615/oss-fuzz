@@ -1,0 +1,2 @@
+MojoDescriptorFuzzer
+ProjectArtifactMetadataFuzzer
