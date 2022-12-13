@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM gcr.io/oss-fuzz-base/base-builder-jvm:recorder-1.0.0
+FROM gcr.io/oss-fuzz-base/base-builder-jvm
 
 RUN curl -L https://dlcdn.apache.org/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.zip -o maven.zip && \
     unzip maven.zip -d $SRC/maven && \

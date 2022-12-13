@@ -1,3 +1,4 @@
+
 // Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,30 +14,21 @@
 // limitations under the License.
 //
 ////////////////////////////////////////////////////////////////////////////////
+
 import com.code_intelligence.jazzer.api.FuzzedDataProvider;
+
 import com.sun.mail.util.ASCIIUtility;
 import java.lang.NumberFormatException;
 
 public class ASCIIUtilityFuzzer {
-
-    public static void fuzzerTestOneInput(FuzzedDataProvider data) {
-        try {
-            data = new MyRecordedFuzzedDataProvider(data, "", "ASCIIUtilityFuzzer");
-            try {
-                ((MyRecordedFuzzedDataProvider) data).markBeginFuzzer();
-                byte[] input = data.consumeRemainingAsBytes();
-                try {
-                    ASCIIUtility.parseInt(input, 0, input.length);
-                    ASCIIUtility.parseLong(input, 0, input.length);
-                } catch (NumberFormatException e) {
-                }
-                ASCIIUtility.toString(input);
-            } finally {
-                ((MyRecordedFuzzedDataProvider) data).markEndFuzzer();
-                ((MyRecordedFuzzedDataProvider) data).close();
-            }
-        } catch (Exception ex) {
-            throw ex;
-        }
+  public static void fuzzerTestOneInput(FuzzedDataProvider data) {
+    byte[] input = data.consumeRemainingAsBytes();
+    try{
+      ASCIIUtility.parseInt(input, 0, input.length);
+      ASCIIUtility.parseLong(input, 0, input.length);
     }
+    catch(NumberFormatException e){}
+
+    ASCIIUtility.toString(input);
+  }
 }
