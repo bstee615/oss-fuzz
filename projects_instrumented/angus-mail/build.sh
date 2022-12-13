@@ -29,7 +29,7 @@ ALL_JARS="angus-core.jar jakarta.mail-1.0.1-SNAPSHOT.jar"
 BUILD_CLASSPATH=$(echo $ALL_JARS | xargs printf -- "$OUT/%s:"):$JAZZER_API_PATH
 
 # All .jar and .class files lie in the same directory as the fuzzer at runtime.
-RUNTIME_CLASSPATH=$(echo $ALL_JARS | xargs printf -- "\$this_dir/%s:"):\$this_dir:$RECORDER_API_PATH
+RUNTIME_CLASSPATH=$(echo $ALL_JARS | xargs printf -- "\$this_dir/%s:"):\$this_dir
 
 for fuzzer in $(find $SRC -name '*Fuzzer.java'); do
   fuzzer_basename=$(basename -s .java $fuzzer)
@@ -49,7 +49,7 @@ fi
 LD_LIBRARY_PATH=\"$JVM_LD_LIBRARY_PATH\":\$this_dir \
 \$this_dir/jazzer_driver --agent_path=\$this_dir/jazzer_agent_deploy.jar \
 --instrumentation_includes=com.sun.mail.** \
---cp=$RUNTIME_CLASSPATH \
+--cp=$RECORDER_API_PATH:$RUNTIME_CLASSPATH \
 --target_class=$fuzzer_basename \
 --jvm_args=\"\$mem_settings\" \
 \$@" > $OUT/$fuzzer_basename
