@@ -33,6 +33,15 @@ def parse_file(filename):
         tree = parser.parse(f.read())
     return tree
 
+#%%
+import traceback
+
+def get_source_file(repo, class_name_fq):
+    class_filepath = class_name_fq.replace(".", "/")
+    actual_filepaths = list(Path(repo.working_dir).rglob("*/" + class_filepath + ".java"))
+    assert len(actual_filepaths) == 1, (actual_filepaths, repo, class_name_fq)
+    return actual_filepaths[0]
+
 
 # %%
 
@@ -100,13 +109,6 @@ def print_node(node, indent=0, **kwargs):
         text = text.splitlines(keepends=False)[0] + "..."
     print(" " * (indent * 2), node, text)
 
-
-def get_source_file(repo, class_name_fq):
-    class_filepath = class_name_fq.replace(".", "/")
-    actual_filepaths = list(Path(repo.working_dir).rglob("*/" + class_filepath + ".java"))
-    assert len(actual_filepaths) == 1, (actual_filepaths, repo, class_name_fq)
-    return actual_filepaths[0]
-
 def get_method_node(actual_filepath, class_name_fq, method_name, lineno, do_print=False):
     class_name = class_name_fq.rsplit(".", maxsplit=1)[1]
     tree = parse_file(actual_filepath)
@@ -123,16 +125,8 @@ def is_forward(method_node):
     return len(block_stmts) == 1 and block_stmts[0].type == "return_statement"
 
 
-# %%
-# no such method checker-framework /home/benjis/code/bug-benchmarks/oss-fuzz/repos/checker-framework/checker-qual/src/main/java/org/checkerframework/checker/formatter/qual/ConversionCategory.java org.checkerframework.checker.formatter.qual.ConversionCategory fromConversionChar 198
-src_fpath = "/home/benjis/code/bug-benchmarks/oss-fuzz/repos/checker-framework/checker-qual/src/main/java/org/checkerframework/checker/formatter/qual/ConversionCategory.java"
-class_name = "org.checkerframework.checker.formatter.qual.ConversionCategory"
-method_name = "fromConversionChar"
-lineno = 198
-print(get_method_node(src_fpath, class_name, method_name, lineno, do_print=False))
 
-
-# %%
+#%%
     
 if __name__ == "__main__":
     from git import Repo
@@ -145,3 +139,38 @@ if __name__ == "__main__":
     print(method1, fwd1)
     fwd2 = is_forward(method2)
     print(method2, fwd2)
+
+    from git import Repo
+    try:
+        get_source_file(Repo("/home/benjis/code/bug-benchmarks/oss-fuzz/repos/apache-commons-configuration"), 'org.apache.commons.text.lookup.FunctionStringLookup')
+    except AssertionError:
+        traceback.print_exc()
+    get_source_file(Repo("/home/benjis/code/bug-benchmarks/oss-fuzz/repos/apache-commons-text"), 'org.apache.commons.text.lookup.FunctionStringLookup')
+
+    # %%
+    # no such method checker-framework /home/benjis/code/bug-benchmarks/oss-fuzz/repos/checker-framework/checker-qual/src/main/java/org/checkerframework/checker/formatter/qual/ConversionCategory.java org.checkerframework.checker.formatter.qual.ConversionCategory fromConversionChar 198
+    src_fpath = "/home/benjis/code/bug-benchmarks/oss-fuzz/repos/checker-framework/checker-qual/src/main/java/org/checkerframework/checker/formatter/qual/ConversionCategory.java"
+    class_name = "org.checkerframework.checker.formatter.qual.ConversionCategory"
+    method_name = "fromConversionChar"
+    lineno = 198
+    print(get_method_node(src_fpath, class_name, method_name, lineno, do_print=False))
+
+    #%%
+    # no such method apache-commons-io /home/benjis/code/bug-benchmarks/oss-fuzz/repos/apache-commons-io/src/main/java/org/apache/commons/io/function/IOConsumer.java org.apache.commons.io.function.IOConsumer forEach 106
+    # no such method apache-commons-io /home/benjis/code/bug-benchmarks/oss-fuzz/repos/apache-commons-io/src/main/java/org/apache/commons/io/StandardLineSeparator.java org.apache.commons.io.StandardLineSeparator getString 72
+    # no such method apache-commons-io /home/benjis/code/bug-benchmarks/oss-fuzz/repos/apache-commons-io/src/main/java/org/apache/commons/io/StandardLineSeparator.java org.apache.commons.io.StandardLineSeparator $values 28
+    src_fpath = "/home/benjis/code/bug-benchmarks/oss-fuzz/repos/apache-commons-io/src/main/java/org/apache/commons/io/function/IOConsumer.java"
+    class_name = "org.apache.commons.io.function.IOConsumer"
+    method_name = "forEach"
+    lineno = 106
+    print(get_method_node(src_fpath, class_name, method_name, lineno, do_print=False))
+    src_fpath = "/home/benjis/code/bug-benchmarks/oss-fuzz/repos/apache-commons-io/src/main/java/org/apache/commons/io/StandardLineSeparator.java"
+    class_name = "org.apache.commons.io.StandardLineSeparator"
+    method_name = "getString"
+    lineno = 72
+    print(get_method_node(src_fpath, class_name, method_name, lineno, do_print=False))
+    src_fpath = "/home/benjis/code/bug-benchmarks/oss-fuzz/repos/apache-commons-io/src/main/java/org/apache/commons/io/StandardLineSeparator.java"
+    class_name = "org.apache.commons.io.StandardLineSeparator"
+    method_name = "$values"
+    lineno = 28
+    print(get_method_node(src_fpath, class_name, method_name, lineno, do_print=False))

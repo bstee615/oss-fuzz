@@ -19,7 +19,7 @@ with jsonlines.open(args.input_file) as inf, jsonlines.open(args.output_file, "w
 
     project_examples = []
     current_project = None
-    for example in tqdm.tqdm(inf, total=num_lines):
+    for example in tqdm.tqdm(inf, total=num_lines, desc="sorting"):
         # /home/benjis/code/bug-benchmarks/oss-fuzz/repos/angus-mail/core/src/main/java/com/sun/mail/util/ASCIIUtility.java
         example["project"] = project = re.search(r"oss-fuzz/repos/([^/]+)/", example["file_path"]).group(1)
         # [

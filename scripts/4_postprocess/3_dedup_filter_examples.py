@@ -96,7 +96,7 @@ with jsonlines.open(args.input_file) as inf, jsonlines.open(args.output_file, "w
     it = inf
     if limit:
         it = itertools.islice(it, 5)
-    with tqdm.tqdm(it, total=num_lines) as pbar:
+    with tqdm.tqdm(it, total=num_lines, desc="dedup/filtering") as pbar:
         for example in pbar:
             try:
                 outcome = filter_example(example)

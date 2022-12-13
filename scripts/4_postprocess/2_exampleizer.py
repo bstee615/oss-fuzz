@@ -16,6 +16,7 @@ parser.add_argument('input_dir')
 parser.add_argument('output_file')
 parser.add_argument('--sample', action='store_true')
 parser.add_argument('--nproc', type=int, default=10)
+parser.add_argument('--single_thread', action='store_true')
 args = parser.parse_args()
 
 # %%
@@ -62,25 +63,27 @@ method_name = data["method_name"]
 repo = Repo("repos/" + project)
 get_source_file(repo, class_name)
 
-#%%
-def is_valid_call(node):
-    return not decompose_location(node.attrib["method"])["class_name"].endswith("Fuzzer")
-
 
 # %%
-def get_calls_iter(iter):
-    for _, node in iter:
-        if node.tag == "call":
-            yield node
-            node.clear()
+auto_lookup = {
+    'org.springframework': 'spring-framework',
+    'org.slf4j': 'slf4j-api',
+}
 
 def process_one(call, xml, repo, printed_methods):
-    if not is_valid_call(call):
-        return {
-            "result": "invalid_call",
-        }
+    # print("FOO", call.attrib, xml, ET.tostring(call))
     method = call.attrib["method"]
     data = decompose_location(method)
+    if data["class_name"].endswith("Fuzzer"):
+        return {
+            "result": "fuzzer_class",
+        }
+    if data["method_name"].startswith("$"):
+        return {
+            "result": "invalid_call",
+            "class_name": data["class_name"],
+            "method_name": data["method_name"],
+        }
     if data["inner_class_name"] is not None:
         return {
             "result": "skipped_inner_class",
@@ -90,6 +93,8 @@ def process_one(call, xml, repo, printed_methods):
             "result": "skipped_lambda",
         }
     class_name = data["class_name"]
+    # if class_name in auto_lookup:
+    #     repo = Repo(auto_lookup[class_name])
     method_name = data["method_name"]
     try:
         def serialize(node):
@@ -117,13 +122,33 @@ def process_one(call, xml, repo, printed_methods):
                     "xml": ET.tostring(node, encoding="unicode"),
                 }
 
-        src_fpath = get_source_file(repo, class_name)
-        # com.sun.mail.util.ASCIIUtility:116
+        try:
+            src_fpath = get_source_file(repo, class_name)
+        except AssertionError:
+            # Try again
+            if class_name.startswith("org.apache.commons"):
+                package_subname = class_name.split(".")[3]
+                if package_subname[-1].isdigit():
+                    # configuration2 lang3
+                    package_subname = package_subname[:-1]
+                repo_name = "apache-commons-" + package_subname
+                repo = Repo("repos/" + repo_name)
+                src_fpath = get_source_file(repo, class_name)
+            else:
+                p = next(((k, v) for k, v in auto_lookup.items()), None)
+                if p is not None:
+                    repo_name = p[1]
+                    repo = Repo("repos/" + repo_name)
+                    src_fpath = get_source_file(repo, class_name)
+                else:
+                    print("UNHANDLED\n" + traceback.format_exc())
+                raise
+        # example: com.sun.mail.util.ASCIIUtility:116
         lineno = int(call.attrib["location"].split(":")[1])
         method_node = get_method_node(src_fpath, class_name, method_name, lineno)
         if method_node is None:
             if method not in printed_methods:
-                print(f"no such method {project=} {class_name=} {method_name=}")
+                print(f"no such method {project=} {repo=} {class_name=} {method_name=}")
                 printed_methods[(project, class_name, method_name)] = 0
             printed_methods[(project, class_name, method_name)] += 1
             return {
@@ -187,7 +212,6 @@ def process_one(call, xml, repo, printed_methods):
             }
         }
     except Exception:
-        failed_example += 1
         if method not in printed_methods:
             print(f"failed exampling method call {project=} {class_name=} {method_name=}\n{traceback.format_exc()}")
             printed_methods[(project, class_name, method_name)] = 0
@@ -195,23 +219,22 @@ def process_one(call, xml, repo, printed_methods):
 
 import json
 
-from multiprocessing import Pool, Manager
+from multiprocessing import Manager, Pool
 import functools
 from collections import defaultdict
 
 all_results = defaultdict(int)
-# failed_project = 0
-# failed_example = 0
-# missing_method = 0
-# skipped_inner_class = 0
 
-# man = Manager()
+def get_calls_iter(iter):
+    for _, node in iter:
+        if node.tag == "call":
+            yield node
+            node.clear()
 
 with open(args.output_file, "w") as outf:
     for project in tqdm.tqdm(all_projects, desc="all projects"):
         try:
             project_xmls = [xml for xml in all_xmls if xml.name.startswith("trace-" + project)]
-            # print(project, fpaths)
             for i, xml in enumerate(project_xmls):
                 repo = Repo("repos/" + project)
                 num_calls = 0
@@ -221,15 +244,15 @@ with open(args.output_file, "w") as outf:
                             num_calls += 1
                 iter = ET.iterparse(xml, events=("end",))
                 calls = get_calls_iter(iter)
-                # should_leave = i == len(project_xmls)-1
                 try:
-                    # printed_methods = set()
-                    # for i, call in enumerate(tqdm.tqdm(calls, f"XML ({i+1}/{len(project_xmls)}) {xml}", total=num_calls, leave=False)):
-                    # queue = man.Queue(maxsize=12800)
                     with Manager() as man:
-                        with man.Pool(args.nproc) as pool:
-                            printed_methods = man.dict()
-                            it = pool.imap(functools.partial(process_one, repo=repo, xml=xml, printed_methods=printed_methods), calls)
+                        printed_methods = man.dict()
+                        invalid_methods = set()
+                        with Pool(args.nproc) as pool:
+                            if args.single_thread:
+                                it = map(functools.partial(process_one, repo=repo, xml=xml, printed_methods=printed_methods), calls)
+                            else:
+                                it = pool.imap(functools.partial(process_one, repo=repo, xml=xml, printed_methods=printed_methods), calls)
                             with tqdm.tqdm(it,
                                             desc=f"XML ({i+1}/{len(project_xmls)}) {xml}",
                                             total=num_calls,
@@ -238,8 +261,16 @@ with open(args.output_file, "w") as outf:
                                 for result in pbar:
                                     if result["result"] == "success":
                                         outf.write(json.dumps(result["data"]) + "\n")
-                                    all_results[result["result"]]
-                                    pbar.set_postfix(all_results)
+                                    if result["result"] == "invalid_call":
+                                        invalid_methods.add((result["class_name"], result["method_name"]))
+                                    all_results[result["result"]] += 1
+                                    # pbar.set_postfix(all_results)
+                        printed_methods = dict(printed_methods)
+                        if len(printed_methods) > 0:
+                            print(xml, "Errored methods:", json.dumps({str(k): v for k, v in printed_methods.items()}, indent=2), sep="\n")
+                        if len(invalid_methods) > 0:
+                            print(xml, "Invalid calls:", json.dumps(sorted(invalid_methods), indent=2), sep="\n")
+                        # print(xml, "Results:", json.dumps(all_results, indent=2), sep="\n")
                 except Exception:
                     all_results["failed_xml"] += 1
                     print("ERROR in file:", project, str(xml))
@@ -248,10 +279,6 @@ with open(args.output_file, "w") as outf:
             all_results["failed_project"] += 1
             print("failed example-izing", project)
             print(traceback.format_exc())
-# print("FAILED", failed_project, "PROJECTS")
-# print("FAILED", failed_example, "EXAMPLES")
-# print("MISSED", missing_method, "METHODS")
-# print("SKIPPED", skipped_inner_class, "INNER CLASSES")
 print("RESULTS:")
 print(json.dumps(all_results, indent=2))
 
