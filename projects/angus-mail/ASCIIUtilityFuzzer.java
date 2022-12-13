@@ -25,18 +25,29 @@ public class ASCIIUtilityFuzzer {
   public static void fuzzerTestOneInput(FuzzedDataProvider data) {
     try {
     data = new MyRecordedFuzzedDataProvider(data, "", "ASCIIUtilityFuzzer");
-    try {
-    ((MyRecordedFuzzedDataProvider)data).markBeginFuzzer();
-    byte[] input = data.consumeRemainingAsBytes();
-    try
-    {
-      ASCIIUtility.parseInt(input, 0, input.length);
-      ASCIIUtility.parseLong(input, 0, input.length);
+      try {
+        ((MyRecordedFuzzedDataProvider) data).markBeginFuzzer();
+        byte[] input = data.consumeRemainingAsBytes();
+        try {
+          {
+            var result0 = ASCIIUtility.parseInt(input, 0, input.length);
+            ((MyRecordedFuzzedDataProvider)data).noop(result0);
+          }
+          {
+            var result1 = ASCIIUtility.parseLong(input, 0, input.length);
+            ((MyRecordedFuzzedDataProvider)data).noop(result1);
+          }
+        } catch (NumberFormatException e) {
+        }
+        {
+          var result2 = ASCIIUtility.toString(input);
+          ((MyRecordedFuzzedDataProvider)data).noop(result2);
+        }
+      } finally {
+        ((MyRecordedFuzzedDataProvider) data).markEndFuzzer();
+        ((MyRecordedFuzzedDataProvider) data).close();
+      }
+    } catch (Exception ex) {
     }
-    catch(NumberFormatException e){}
-
-    ASCIIUtility.toString(input);
-    } finally { ((MyRecordedFuzzedDataProvider)data).markEndFuzzer(); ((MyRecordedFuzzedDataProvider)data).close(); }
-    } catch (Exception ex) { }
   }
 }

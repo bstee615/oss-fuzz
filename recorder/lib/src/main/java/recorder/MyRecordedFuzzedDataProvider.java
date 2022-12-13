@@ -20,6 +20,7 @@ public final class MyRecordedFuzzedDataProvider implements FuzzedDataProvider, A
   private FuzzedDataProvider provider;
   private Gson gson;
   private Writer writer;
+  private int ordinal = -1;
 
   public MyRecordedFuzzedDataProvider(FuzzedDataProvider provider, String baseDir, String fuzzerTargetName) {
     System.err.println(String.format("GREAT! Instrumented the class. provider.remainingBytes(): %d baseDir: \"%s\" fuzzerTargetName: \"%s\"", provider.remainingBytes(), baseDir, fuzzerTargetName));
@@ -38,6 +39,10 @@ public final class MyRecordedFuzzedDataProvider implements FuzzedDataProvider, A
     this.writer.close();
   }
 
+  public <T> void noop(T obj) {
+    assert true;
+  }
+
   private void writeToFile(String string) {
     System.err.println(String.format("WRITE TO FILE: \"%s\"", string));
     try {
@@ -51,6 +56,10 @@ public final class MyRecordedFuzzedDataProvider implements FuzzedDataProvider, A
   private String encodeData(String type, String value) {
     StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
     return String.format("{\"type\": \"%s\", \"value\": %s, \"stacktrace\": %s}", type, value, gson.toJson(stackTrace));
+  }
+
+  private String encodeData(String type, int value) {
+    return encodeData(type, String.valueOf(value));
   }
 
   private String encodeData(String type) {
@@ -150,11 +159,12 @@ public final class MyRecordedFuzzedDataProvider implements FuzzedDataProvider, A
   /* END GENERATED METHODS */
   
   public void markBeginFuzzer() {
-    writeToFile(encodeData("begin"));
+    ordinal ++;
+    writeToFile(encodeData("begin", ordinal));
   }
   
   public void markEndFuzzer() {
-    writeToFile(encodeData("end"));
+    writeToFile(encodeData("end", ordinal));
   }
 
   @Override

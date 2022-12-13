@@ -22,8 +22,8 @@ ENV PATH $PATH:$JAVA_HOME/bin
 ENV JAZZER_API_PATH "/usr/local/lib/jazzer_api_deploy.jar"
 ENV RECORDER_API_PATH "/usr/local/lib/recorder_deploy.jar"
 
-COPY recorder-1.0.0.jar ${RECORDER_API_PATH}
-
 RUN install_java.sh
+
+COPY recorder-1.0.0.jar ${RECORDER_API_PATH}
 
 ENV JAZZER_API_PATH "${JAZZER_API_PATH}:${RECORDER_API_PATH}"
