@@ -1,0 +1,3 @@
+RedisStringSerializationFuzzer
+RedisStringDeserializationFuzzer
+GenericJackson2JsonRedisSerializerFuzzer
