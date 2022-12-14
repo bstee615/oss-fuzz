@@ -19,12 +19,17 @@ projects/fuzzers, running them etc."""
 
 from __future__ import print_function
 from multiprocessing.dummy import Pool as ThreadPool
+from pathlib import Path
 import argparse
 import datetime
 import errno
 import logging
 import os
-import pipes
+import warnings
+with warnings.catch_warnings():
+  # DeprecationWarning: DeprecationWarning: 'pipes' is deprecated and slated for removal in Python 3.13
+  warnings.simplefilter("ignore", category=DeprecationWarning)
+  import pipes
 import re
 import subprocess
 import sys
@@ -1072,9 +1077,9 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
       '-v',
       '%s:/testcase' % _get_absolute_path(testcase_path),
       '-v',
-      '%s:/java-tracer' % '/home/benjis/code/bug-benchmarks/trace-modeling/trace_collection_java/app/build/libs',
-      '-v',
-      '%s:/instrumentation.jar' % '/home/benjis/code/java-instrumentation/build/libs/java-instrumentation-1.0-SNAPSHOT.jar',
+      '%s:/java-tracer' % (Path(__file__).parent.parent.parent / 'trace-modeling/trace_collection_java/app/build/libs'),
+      # '-v',
+      # '%s:/instrumentation.jar' % '/home/benjis/code/java-instrumentation/build/libs/java-instrumentation-1.0-SNAPSHOT.jar',
       '-p', port + ':' + port,
       '-t',
       '--name', container_name,

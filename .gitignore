@@ -24,3 +24,4 @@ tmp/
 gradle-7.6/
 gradle-7.6-bin.zip
 postprocessed_xmls/1_repair_success_1.txt
+dump_logs/
