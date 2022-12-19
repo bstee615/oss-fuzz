@@ -110,7 +110,10 @@ def print_node(node, indent=0, **kwargs):
     print(" " * (indent * 2), node, text)
 
 def get_method_node(actual_filepath, class_name_fq, method_name, lineno, do_print=False):
-    class_name = class_name_fq.rsplit(".", maxsplit=1)[1]
+    if "." in class_name_fq:
+        class_name = class_name_fq.rsplit(".", maxsplit=1)[1]
+    else:
+        class_name = class_name_fq
     tree = parse_file(actual_filepath)
 
     if do_print:
