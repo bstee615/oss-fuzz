@@ -10,9 +10,9 @@ base_dst_dir = Path("projects")
 def transform_project(project):
     project_dir = base_dir / project
     dst_dir = base_dst_dir / project_dir.relative_to(base_dir)
+
     if not (project_dir / "Dockerfile").exists():
         return
-    
     
     # Dockerfile
     # "FROM gcr.io/oss-fuzz-base/base-builder-jvm" -> "FROM gcr.io/oss-fuzz-base/base-builder-jvm:recorder-1.0.0"
@@ -31,6 +31,13 @@ def transform_project(project):
     new_text = text
     # javac -g
     new_text = re.sub(r"(^|\s)javac(\s)", r"\1javac -g\2", new_text)
+    
+    # TODO:If not exist, detect and add invocations to "mvn" or "mvnw" or "${MVN}" or "${MVNW}"
+    # https://www.ibm.com/docs/en/fafz/14.1?topic=analyzer-generating-debugging-information-common-java-build-tools
+    # https://www.logicbig.com/how-to/maven/mvn-debug-info.html
+    # mvn -Dmaven.compiler.debuglevel=none
+    new_text = re.sub(r"^MVN_FLAGS=(\")?", r"MVN_FLAGS=\1-Dmaven.compiler.debuglevel=none ", new_text)
+
     # When "--cp=" occurs, prepend "$RECORDER_API_PATH:"
     new_text = re.sub(r"(^|\s)--cp=", r"\1--cp=$RECORDER_API_PATH:", new_text)
     print("*** build.sh ***")

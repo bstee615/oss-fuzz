@@ -25,3 +25,8 @@ gradle-7.6/
 gradle-7.6-bin.zip
 postprocessed_xmls/1_repair_success_1.txt
 dump_logs/
+build2/
+do_one_project_logs_01_instrumentationworks/
+do_one_project_logs_02_instrument_asserts/
+postprocessed_xmls/
+2_examples.zip

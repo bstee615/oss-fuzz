@@ -1066,6 +1066,8 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
   if debugger:
     # image_name = 'base-runner-debug'
     env += ['DEBUGGER=' + debugger]
+  
+  debugger = 'JAVA_OPTS="-ea"'
 
   if env_to_add:
     env += env_to_add
