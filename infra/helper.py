@@ -1085,8 +1085,10 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
       '-p', port + ':' + port,
       '-t',
       '--name', container_name,
-      'gcr.io/oss-fuzz-base/%s:recorder-1.0.0' % image_name,
-      'bash', '-c', "sed -i '25s/.*/if [ ! -e $TESTCASE ]; then/g' `reproduce`; reproduce %s -runs=%d %s; ls /fuzzerOutput_*.jsonl; echo \"FUZZER_OUTPUT_JSONL BEGIN\"; cat /fuzzerOutput_*.jsonl | sed -e 's/^/FUZZER_OUTPUT_JSONL /'; echo \"FUZZER_OUTPUT_JSONL END\"" % (fuzzer_name, num_runs, " ".join([("--" if a.startswith("instrumentation_excludes") or a.startswith("cp") else "-") + a for a in fuzzer_args])),
+      # 'gcr.io/oss-fuzz-base/%s:recorder-1.0.0' % image_name,
+      'gcr.io/oss-fuzz-base/%s' % image_name,
+      # 'bash', '-c', "sed -i '25s/.*/if [ ! -e $TESTCASE ]; then/g' `reproduce`; reproduce %s -runs=%d %s; ls /fuzzerOutput_*.jsonl; echo \"FUZZER_OUTPUT_JSONL BEGIN\"; cat /fuzzerOutput_*.jsonl | sed -e 's/^/FUZZER_OUTPUT_JSONL /'; echo \"FUZZER_OUTPUT_JSONL END\"" % (fuzzer_name, num_runs, " ".join([("--" if a.startswith("instrumentation_excludes") or a.startswith("cp") else "-") + a for a in fuzzer_args])),
+      'bash', '-c', "reproduce %s -runs=%d %s" % (fuzzer_name, num_runs, reproduce_args),
   ]
   print("docker run", " ".join(a if ' ' not in a else '"' + a + '"' for a in run_args))
 
