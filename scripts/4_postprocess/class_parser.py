@@ -122,9 +122,9 @@ def get_method_node(actual_filepath, class_name_fq, method_name, lineno, do_prin
     if do_print:
         dfs(tree.root_node, fn=print_node)
     method_node = dfs(tree.root_node, fn=return_method(class_name, method_name, lineno))
-    if method_node is None:
-        # TODO: FIX THIS SLOPPY SOLUTION.
-        method_node = dfs(tree.root_node, fn=return_method(class_name, method_name, None))
+    # if method_node is None:
+    #     # TODO: FIX THIS SLOPPY SOLUTION.
+    #     method_node = dfs(tree.root_node, fn=return_method(class_name, method_name, None))
 
     return method_node
 

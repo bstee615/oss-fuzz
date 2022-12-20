@@ -133,26 +133,28 @@ def process_one(call, project, xml, repo, printed_methods):
         if class_name.endswith("Fuzzer"):
             src_fpath = next((Path("projects") / project).rglob(class_name.replace(".", "/") + ".java"))
         else:
-            try:
-                src_fpath = get_source_file(repo, class_name)
-            except AssertionError:
-                # Try again
-                if class_name.startswith("org.apache.commons"):
-                    package_subname = class_name.split(".")[3]
-                    if package_subname[-1].isdigit():
-                        # configuration2 lang3
-                        package_subname = package_subname[:-1]
-                    repo_name = "apache-commons-" + package_subname
-                    repo = Repo("repos/" + repo_name)
-                    src_fpath = get_source_file(repo, class_name)
-                else:
-                    p = next(((k, v) for k, v in auto_lookup.items() if class_name.startswith(k)), None)
-                    if p is not None:
-                        repo_name = p[1]
-                        repo = Repo("repos/" + repo_name)
-                        src_fpath = get_source_file(repo, class_name)
-                    else:
-                        raise
+            src_fpath = get_source_file(repo, class_name)
+            # TODO: make this better
+            # try:
+            #     src_fpath = get_source_file(repo, class_name)
+            # except AssertionError:
+            #     # Try again
+            #     if class_name.startswith("org.apache.commons"):
+            #         package_subname = class_name.split(".")[3]
+            #         if package_subname[-1].isdigit():
+            #             # configuration2 lang3
+            #             package_subname = package_subname[:-1]
+            #         repo_name = "apache-commons-" + package_subname
+            #         repo = Repo("repos/" + repo_name)
+            #         src_fpath = get_source_file(repo, class_name)
+            #     else:
+            #         p = next(((k, v) for k, v in auto_lookup.items() if class_name.startswith(k)), None)
+            #         if p is not None:
+            #             repo_name = p[1]
+            #             repo = Repo("repos/" + repo_name)
+            #             src_fpath = get_source_file(repo, class_name)
+            #         else:
+            #             raise
         # example: com.sun.mail.util.ASCIIUtility:116
         lineno = int(call.attrib["location"].split(":")[1])
         method_node = get_method_node(src_fpath, class_name, method_name, lineno)
