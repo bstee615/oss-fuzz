@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # head -n 1 java-projects-from-csv.txt | \
-cat data/1_preprocess/java-projects-from-csv.txt | \
+cat 05_to_build.txt | \
     while read p
 do
     echo N | python3 infra/helper.py build_image $p

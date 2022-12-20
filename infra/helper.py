@@ -304,6 +304,8 @@ def get_parser():  # pylint: disable=too-many-statements
   _add_external_project_args(run_fuzzer_parser)
   run_fuzzer_parser.add_argument(
       '--corpus-dir', help='directory to store corpus for the fuzz target')
+  run_fuzzer_parser.add_argument(
+      '--worker-id', type=int, help='numeric index of the fuzzing worker')
   run_fuzzer_parser.add_argument('project',
                                  help='name of the project or path (external)')
   run_fuzzer_parser.add_argument('fuzzer_name', help='name of the fuzzer')
@@ -1005,7 +1007,7 @@ def run_fuzzer(args):
     ])
     run_args.extend([
         '--name',
-        'fuzzmeister',
+        f'fuzzmeister_{args.worker_id}',
     ])
 
   run_args.extend([
@@ -1071,6 +1073,14 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
 
   if env_to_add:
     env += env_to_add
+  
+  def to_reproduce_arg(a):
+    if a.startswith("instrumentation_excludes") or a.startswith("cp"):
+      prefix = "--"
+    else:
+      prefix = "-"
+    return prefix + a
+  reproduce_args = " ".join([to_reproduce_arg(a) for a in fuzzer_args])
 
   # TODO: disable all coverage. Slow!
   run_args = _env_to_docker_args(env) + [
