@@ -39,7 +39,9 @@ import traceback
 def get_source_file(repo, class_name_fq):
     class_filepath = class_name_fq.replace(".", "/")
     actual_filepaths = list(Path(repo.working_dir).rglob("*/" + class_filepath + ".java"))
-    assert len(actual_filepaths) == 1, (actual_filepaths, repo, class_name_fq)
+    assert len(actual_filepaths) >= 1, (actual_filepaths, repo, class_name_fq)
+    if len(actual_filepaths) > 1:
+        print("WARNING: multiple paths. PATHS =", actual_filepaths, "REPO =", repo, "CLASSNAME =", class_name_fq)
     return actual_filepaths[0]
 
 
@@ -62,7 +64,7 @@ def get_matching_method(class_body, method_name, lineno):
         method_ident = get_child(method, lambda c: c.type == "identifier")
         start_line = method.start_point[0]
         end_line = method.end_point[0]
-        if method_ident.text.decode() == method_name and (start_line <= lineno <= end_line):
+        if method_ident.text.decode() == method_name and (lineno is None or (start_line <= lineno <= end_line)):
             return method
 
 # def return_innerclass_method(method_name, lineno):
@@ -83,6 +85,7 @@ def return_method(class_name, method_name, lineno):
                 class_body = get_child(node, lambda c: c.type == body_type)
                 if node.type == "enum_declaration":
                     class_body = get_child(class_body, lambda c: c.type == "enum_body_declarations")
+                # print("FOUND CLASS", node)
                 # if is_inner_class:
                 #     return dfs(class_body, fn=return_innerclass_method)
                 # else:
@@ -119,6 +122,9 @@ def get_method_node(actual_filepath, class_name_fq, method_name, lineno, do_prin
     if do_print:
         dfs(tree.root_node, fn=print_node)
     method_node = dfs(tree.root_node, fn=return_method(class_name, method_name, lineno))
+    if method_node is None:
+        # TODO: FIX THIS SLOPPY SOLUTION.
+        method_node = dfs(tree.root_node, fn=return_method(class_name, method_name, None))
 
     return method_node
 
@@ -176,4 +182,12 @@ if __name__ == "__main__":
     class_name = "org.apache.commons.io.StandardLineSeparator"
     method_name = "$values"
     lineno = 28
+    print(get_method_node(src_fpath, class_name, method_name, lineno, do_print=False))
+
+    #%%
+    # no such method src_fpath=PosixPath('/home/benjis/code/bug-benchmarks/oss-fuzz/repos/slf4j-api/slf4j-api/src/main/java/org/slf4j/LoggerFactory.java') project='greenmail' repo=<git.repo.base.Repo '/home/benjis/code/bug-benchmarks/oss-fuzz/repos/slf4j-api/.git'> class_name='org.slf4j.LoggerFactory' method_name='getLogger'
+    src_fpath = "/home/benjis/code/bug-benchmarks/oss-fuzz/repos/slf4j-api/slf4j-api/src/main/java/org/slf4j/LoggerFactory.java"
+    class_name = "org.slf4j.LoggerFactory"
+    method_name = "getLogger"
+    lineno = 45
     print(get_method_node(src_fpath, class_name, method_name, lineno, do_print=False))

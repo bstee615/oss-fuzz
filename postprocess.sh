@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# SAMPLE="--sample"
-# SINGLE_THREAD="--single_thread"
+SAMPLE="--sample"
+SINGLE_THREAD="--single_thread"
 
-SAMPLE=""
-SINGLE_THREAD=""
+# SAMPLE=""
+# SINGLE_THREAD=""
 
-NPROC=10
+NPROC=6
 
-INDIR="/media/benjis/basilisk/Files/biggie/oss-fuzz/fuzz_10m_trace_3h/repaired_xmls/"
+INDIR="postprocessed_xmls/"
 OUTFILE="postprocessed/examples.jsonl"
 python scripts/4_postprocess/2_exampleizer.py $INDIR $OUTFILE $SAMPLE $SINGLE_THREAD --nproc $NPROC
 

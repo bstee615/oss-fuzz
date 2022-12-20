@@ -21,7 +21,8 @@ with jsonlines.open(args.input_file) as inf, jsonlines.open(args.output_file, "w
     current_project = None
     for example in tqdm.tqdm(inf, total=num_lines, desc="sorting"):
         # /home/benjis/code/bug-benchmarks/oss-fuzz/repos/angus-mail/core/src/main/java/com/sun/mail/util/ASCIIUtility.java
-        example["project"] = project = re.search(r"oss-fuzz/repos/([^/]+)/", example["file_path"]).group(1)
+        project = example["project"]
+        # example["project"] = project = re.search(r"oss-fuzz/repos/([^/]+)/", example["file_path"]).group(1)
         # [
         #     "class",
         #     "method",
@@ -46,7 +47,7 @@ with jsonlines.open(args.input_file) as inf, jsonlines.open(args.output_file, "w
             "file_path",
             "xml_file_path",
             "attributes",
-            "steps",
+            "lines_covered",
         ]
         example = {k: example[k] for k in key_order}
         if current_project is None:

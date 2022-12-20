@@ -24,7 +24,11 @@ if __name__ == "__main__":
     all_projects = Path("data/1_preprocess/java-projects-from-csv.txt").read_text().splitlines(keepends=False)
     all_xmls = list(Path(args.input_dir).glob("*.xml"))
     if args.sample:
-        all_xmls = all_xmls[:2]
+        # all_xmls = all_xmls[:2]
+        all_xmls = all_xmls[2:4]
+        # all_xmls = [
+        #     Path("postprocessed_xmls/trace-apache-commons-bcel-BcelFuzzer.xml.repair.xml")
+        # ]
     print(len(all_xmls), "XMLs")
 
 
@@ -71,9 +75,10 @@ if __name__ == "__main__":
 auto_lookup = {
     'org.springframework': 'spring-framework',
     'org.slf4j': 'slf4j-api',
+    'jakarta.mail': 'jakarta-mail-api',
 }
 
-def process_one(project, call, xml, repo, printed_methods):
+def process_one(call, project, xml, repo, printed_methods):
     # print("FOO", call.attrib, xml, ET.tostring(call))
     method = call.attrib["method"]
     data = decompose_location(method)
@@ -126,7 +131,7 @@ def process_one(project, call, xml, repo, printed_methods):
                 }
 
         if class_name.endswith("Fuzzer"):
-            src_fpath = Path("projects") / project / (class_name + ".java")
+            src_fpath = next((Path("projects") / project).rglob(class_name.replace(".", "/") + ".java"))
         else:
             try:
                 src_fpath = get_source_file(repo, class_name)
@@ -141,20 +146,19 @@ def process_one(project, call, xml, repo, printed_methods):
                     repo = Repo("repos/" + repo_name)
                     src_fpath = get_source_file(repo, class_name)
                 else:
-                    p = next(((k, v) for k, v in auto_lookup.items()), None)
+                    p = next(((k, v) for k, v in auto_lookup.items() if class_name.startswith(k)), None)
                     if p is not None:
                         repo_name = p[1]
                         repo = Repo("repos/" + repo_name)
                         src_fpath = get_source_file(repo, class_name)
                     else:
-                        print("UNHANDLED\n" + traceback.format_exc())
-                    raise
+                        raise
         # example: com.sun.mail.util.ASCIIUtility:116
         lineno = int(call.attrib["location"].split(":")[1])
         method_node = get_method_node(src_fpath, class_name, method_name, lineno)
         if method_node is None:
             if method not in printed_methods:
-                print(f"no such method {project=} {repo=} {class_name=} {method_name=}")
+                print(f"no such method {src_fpath=} {project=} {repo=} {class_name=} {method_name=} {lineno=}")
                 printed_methods[(project, class_name, method_name)] = 0
             printed_methods[(project, class_name, method_name)] += 1
             return {
@@ -199,6 +203,7 @@ def process_one(project, call, xml, repo, printed_methods):
                     "text": node.text,
                     **node.attrib,
                 })
+        lines_covered = list(sorted(set(s["relative_lineno"] for s in steps_data if "relative_lineno" in s)))
 
         return {
             "result": "success",
@@ -214,7 +219,7 @@ def process_one(project, call, xml, repo, printed_methods):
                 "code": method_code,
                 "entry_variables": entry_variables,
                 "attributes": call_attrib,
-                "steps": steps_data,
+                "lines_covered": lines_covered,
             }
         }
     except Exception:
@@ -222,6 +227,9 @@ def process_one(project, call, xml, repo, printed_methods):
             print(f"failed exampling method call {project=} {class_name=} {method_name=}\n{traceback.format_exc()}")
             printed_methods[(project, class_name, method_name)] = 0
         printed_methods[(project, class_name, method_name)] += 1
+        return {
+            "result": "error_method",
+        }
 
 import json
 
@@ -257,9 +265,9 @@ if __name__ == "__main__":
                             invalid_methods = set()
                             with Pool(args.nproc) as pool:
                                 if args.single_thread:
-                                    it = map(functools.partial(process_one, repo=repo, xml=xml, printed_methods=printed_methods), calls)
+                                    it = map(functools.partial(process_one, project=project, repo=repo, xml=xml, printed_methods=printed_methods), calls)
                                 else:
-                                    it = pool.imap(functools.partial(process_one, repo=repo, xml=xml, printed_methods=printed_methods), calls)
+                                    it = pool.imap(functools.partial(process_one, project=project, repo=repo, xml=xml, printed_methods=printed_methods), calls)
                                 with tqdm.tqdm(it,
                                                 desc=f"XML ({i+1}/{len(project_xmls)}) {xml}",
                                                 total=num_calls,
