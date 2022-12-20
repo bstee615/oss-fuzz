@@ -11,6 +11,7 @@ corpus_root="$4"
 PROJECT_NAME="$5"
 FUZZER="$6"
 echo RUNNING $log_dir $base_port $worker_id $port $corpus_root $PROJECT_NAME $FUZZER
+echo RUNNING $log_dir $base_port $worker_id $port $corpus_root $PROJECT_NAME $FUZZER > "$log_dir/${port}.status"
 #OPTIONS
 
 SAN="address"

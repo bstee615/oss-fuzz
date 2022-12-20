@@ -12,8 +12,8 @@ then
     exec ls $CORPUS_DIR
 fi
 
-docker_name="reproduce_${PORT}"
-docker rm -f "reproduce_${PORT}"
+docker_name="reproduce_${PORT}_${PROJECT_NAME}_${FUZZER}"
+docker rm -f "$docker_name"
 
 python3 infra/helper.py reproduce --tracer --num_runs 1 --tracer_port $PORT --container_name $docker_name $PROJECT_NAME $FUZZER $CORPUS_DIR timeout=3600 instrumentation_excludes="**" &
 PMAIN=$!

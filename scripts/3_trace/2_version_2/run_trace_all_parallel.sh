@@ -21,8 +21,8 @@ mkdir -p $log_dir/logs-xmls
 num_workers=8
 echo Starting $num_workers workers at $(date)...
 
-# parallel --progress --group -N 2 -j$num_workers bash $(dirname $0)/run_trace_all_worker.sh $log_dir $base_port "{%}" $corpus_root {} ::: $(cat $DATA_FILE) > $log_dir/trace_all.log
-bash $(dirname $0)/run_trace_all_worker.sh $log_dir $base_port "1" $corpus_root $(head -n1 $DATA_FILE) > $log_dir/trace_all.log
+parallel --progress --group -N 2 -j$num_workers bash $(dirname $0)/run_trace_all_worker.sh $log_dir $base_port "{%}" $corpus_root {} ::: $(cat $DATA_FILE) > $log_dir/trace_all.log
+# bash $(dirname $0)/run_trace_all_worker.sh $log_dir $base_port "1" $corpus_root $(head -n1 $DATA_FILE) > $log_dir/trace_all.log
 
 trap "exit" INT TERM
 trap "kill 0" EXIT

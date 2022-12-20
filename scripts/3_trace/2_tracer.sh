@@ -12,8 +12,22 @@ tracer_jar="/home/benjis/code/bug-benchmarks/trace-modeling/trace_collection_jav
 java -jar $tracer_jar -l $log_file -t dt_socket -p $PORT -m fuzzerTestOneInput -v DEBUG &
 PMAIN=$!
 
+docker_name="reproduce_${PORT}_${PROJECT_NAME}_${FUZZER}"
 # wait for main process, kill if timeout
-{ sleep $TIMEOUT; echo "$0: TIMEOUT; KILLING $PMAIN"; kill -9 $PMAIN; pkill -9 -P $PMAIN; sleep 10s; echo "<timeout/>" >> $log_file; } &
+kill_if_exe_done(){
+  sleep 10s
+  while true
+  do
+    if [ -z "$(docker ps -q --filter name=$docker_name)" ]
+    then
+        echo "$0: EXE DONE; KILLING $PMAIN"
+        kill -9 $PMAIN
+    fi
+    sleep 10s
+  done
+}
+kill_if_exe_done &
+{ sleep $TIMEOUT; echo "$0: TIMEOUT; KILLING $PMAIN"; kill -9 $PMAIN; pkill -9 -P $PMAIN; sleep 10s; } &
 wait $PMAIN
 echo "$0: PMAIN $PMAIN exited with $?"
 kill -9 %%
