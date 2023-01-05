@@ -18,10 +18,12 @@ kill_if_exe_done(){
   sleep 10s
   while true
   do
+    [ `pgrep $PMAIN` ] || return
     if [ -z "$(docker ps -q --filter name=$docker_name)" ]
     then
         echo "$0: EXE DONE; KILLING $PMAIN"
         kill -9 $PMAIN
+        break
     fi
     sleep 10s
   done

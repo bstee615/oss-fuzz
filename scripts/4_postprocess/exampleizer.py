@@ -1,6 +1,9 @@
+import pprint
 import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from collections import defaultdict
+import itertools
 
 from class_parser import *
 from git import Repo
@@ -10,10 +13,11 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def serialize_call(node):
+def serialize_variable(node):
     """
-    Represent a <call> tag as a string.
+    Represent a <variable> or sibling tag as a string.
     """
+    # TODO: handle <SKIPPED>, <event-thread-mismatch>, <exception>
     if node.tag == "variable":
         text = node.text
         if node.attrib["serializer"] == "ARRAY":
@@ -42,28 +46,51 @@ def serialize_tracepoint(method_node, node):
     """
     Convert <tracepoint> tag into dict.
     """
-    variables = [serialize_call(v) for v in node]
-    lineno = int(node.attrib["location"].split(":")[1])
-    return {
+    variables = [serialize_variable(v) for v in node]
+    result = {
         "tag": node.tag,
         **node.attrib,
         "variables": variables,
-        "relative_lineno": lineno - method_node.start_point[0],
-        "lineno": lineno,
     }
+    try:
+        lineno = int(node.attrib["location"].split(":")[1])
+        result.update({
+            "relative_lineno": lineno - method_node.start_point[0],
+            "lineno": lineno,
+        })
+    except IndexError:
+        pass
+    return result
+
+auto_lookup = {
+    # "org.springframework": "spring-framework",
+    "org.slf4j": "slf4j-api",
+    # "jakarta.mail": "jakarta-mail-api",
+}
+
+def get_repo(project, class_name):
+    """Return the repo containing the project's source code."""
+    matched_repo_name = None
+    for package_path, repo_name in auto_lookup.items():
+        if class_name.startswith(package_path):
+            matched_repo_name = repo_name
+    if matched_repo_name is not None:
+        return Repo("repos/" + matched_repo_name), True
+    else:
+        return Repo("repos/" + project), False
 
 
 def get_src_fpath(project, class_name):
     """
     Get filepath of class_name source code.
     """
-    repo = Repo("repos/" + project)
-    if class_name.endswith("Fuzzer"):
-        src_fpath = next(
+    repo, fudged = get_repo(project, class_name)
+    if class_name.endswith("Fuzzer") or class_name == "ExampleFuzzerNative":
+        src_fpaths = [next(
             (Path("projects") / project).rglob(class_name.replace(".", "/") + ".java")
-        )
+        )]
     else:
-        src_fpath = get_source_file(repo, class_name)
+        src_fpaths = get_source_file(repo, class_name)
         # TODO: make this better
         # try:
         #     src_fpath = get_source_file(repo, class_name)
@@ -85,7 +112,7 @@ def get_src_fpath(project, class_name):
         #             src_fpath = get_source_file(repo, class_name)
         #         else:
         #             raise
-    return src_fpath
+    return src_fpaths, fudged
 
 
 def get_dynamic_information(call, method_node):
@@ -101,7 +128,7 @@ def get_dynamic_information(call, method_node):
         elif child.tag == "tracepoint":
             steps.append(child)
             if child.attrib["type"] == "entry":
-                entry_variables = [serialize_call(v) for v in child]
+                entry_variables = [serialize_variable(v) for v in child]
         else:
             steps.append(child)
     assert entry_variables is not None, f"malformed trace: {call}"
@@ -125,18 +152,15 @@ def get_dynamic_information(call, method_node):
     return entry_variables, lines_covered
 
 
-auto_lookup = {
-    "org.springframework": "spring-framework",
-    "org.slf4j": "slf4j-api",
-    "jakarta.mail": "jakarta-mail-api",
-}
-
 
 def process_one(call, xml):
     """
     Process one <call> tag into dict representation with extra metadata.
     """
-    lineno = int(call.attrib["location"].split(":")[1])
+    try:
+        lineno = int(call.attrib["location"].split(":")[1])
+    except IndexError:
+        lineno = None
     method = call.attrib["method"]
     location = decompose_location(method)
     if location["method_name"].startswith("$"):
@@ -161,18 +185,29 @@ def process_one(call, xml):
     method_name = location["method_name"]
     try:
         try:
-            src_fpath = get_src_fpath(project, class_name)
+            src_fpaths, fudged = get_src_fpath(project, class_name)
         except AssertionError:
             return {
-                "result": "missing_source"
+                "result": "missing_source",
             }
-        method_node = get_method_node(src_fpath, class_name, method_name, lineno)
+        for src_fpath in src_fpaths:
+            method_node = get_method_node(src_fpath, class_name, method_name, lineno)
+            if method_node is not None:
+                break
+
         if method_node is None:
             return {
                 "result": "missing_method",
+                "project": project,
+                "class_name": class_name,
+                "method_name": method_name,
+                "lineno": lineno,
+                "src_fpath": src_fpath,
+                "xml": xml,
             }
+
         assert method_node is not None, method_node
-        ifw = is_forward(method_node)
+        method_type = get_method_type(method_node)
         method_code = method_node.text.decode()
 
         entry_variables, lines_covered = get_dynamic_information(call, method_node)
@@ -183,7 +218,10 @@ def process_one(call, xml):
                 "project": project,
                 "class": class_name,
                 "method": method_name,
-                "is_forward": ifw,
+                "fudged_repo": fudged,
+                "method_type": method_type,
+                "is_forward": method_type == "forward",
+                "has_body": method_type != "no_body",
                 "xml_file_path": str(xml.absolute()),
                 "file_path": str(src_fpath.absolute()),
                 "start_point": method_node.start_point,
@@ -194,13 +232,52 @@ def process_one(call, xml):
                 "lines_covered": lines_covered,
             },
         }
-    except Exception:
+    except Exception as ex:
         log.exception(f"ERROR HANDLING METHOD {project=} {class_name=} {method_name=}")
         return {
             "result": "error_method",
+            "project": project,
+            "class_name": class_name,
+            "method_name": method_name,
+            "ex": ex,
         }
     
+def test_process_no_lineno():
+    print()
+    xml = Path("postprocessed_xmls/trace-java-example-ExampleFuzzerNative.xml")
+    it = (n for _, n in ET.iterparse(xml) if n.tag == "call")
+    results = defaultdict(int)
+    for node in it:
+        data = process_one(node, xml)
+        results[data["result"]] += 1
+        # pprint.pprint(data)
+    pprint.pprint(dict(results))
+    
 def test_process_one():
+    print()
     xml = Path("postprocessed_xmls/trace-greenmail-UserManagerFuzzer.xml")
-    call = next(n for _, n in ET.iterparse(xml) if n.tag == "call")
-    process_one(call, xml)
+    it = (n for _, n in ET.iterparse(xml) if n.tag == "call")
+
+    myp = pprint.PrettyPrinter(width=600)
+
+    i = 0
+    results = defaultdict(int)
+    fudged = []
+    for node in it:
+        try:
+            data = process_one(node, xml)
+            results[data["result"]] += 1
+            if data["result"] != "success":
+                print(i, "MISSING!")
+                myp.pprint(data)
+                # break
+            else:
+                fudged.append(data["data"]["fudged_repo"])
+            # myp.pprint(data)
+        except Exception:
+            print(i, "FAILED!")
+            traceback.print_exc()
+            break
+        i += 1
+    myp.pprint(dict(results))
+    print("FUDGED:", sum(fudged), len(fudged))

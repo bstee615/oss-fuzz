@@ -71,16 +71,17 @@ def get_source_file(repo, class_name_fq):
         Path(repo.working_dir).rglob("*/" + class_filepath + ".java")
     )
     assert len(actual_filepaths) >= 1, (actual_filepaths, repo, class_name_fq)
-    if len(actual_filepaths) > 1:
-        print(
-            "WARNING: multiple paths. PATHS =",
-            actual_filepaths,
-            "REPO =",
-            repo,
-            "CLASSNAME =",
-            class_name_fq,
-        )
-    return actual_filepaths[0]
+    actual_filepaths = sorted(actual_filepaths, key=lambda p: str(p.absolute()))
+    # if len(actual_filepaths) > 1:
+        # if class_name_fq.startswith("com.google.common"):
+        #     actual_filepaths = [f for f in actual_filepaths if f.is_relative_to(Path(repo.working_dir)/"guava")]
+        # actual_filepaths = sorted(actual_filepaths, key=lambda p: str(p.absolute()))
+        # for i in range(1, len(actual_filepaths)):
+            # if not filecmp.cmp(actual_filepaths[i-1], actual_filepaths[i]):
+                # log.warn(f"multiple paths. {actual_filepaths=} {repo=} {class_name_fq=}")
+                # break
+        # log.debug(f"multiple paths. {actual_filepaths=} {repo=} {class_name_fq=}")
+    return actual_filepaths
 
 
 def test_get_source_file():
@@ -101,8 +102,11 @@ def get_children(node, fn):
     return [c for c in node.children if fn(c)]
 
 
-def get_child(node, fn):
-    return next(iter(get_children(node, fn)))
+def get_child(node, fn, none_default=False):
+    if none_default:
+        return next(iter(get_children(node, fn)), None)
+    else:
+        return next(iter(get_children(node, fn)))
 
 
 def get_matching_method(class_body, method_name, lineno):
@@ -185,17 +189,19 @@ def get_method_node(
     #     method_node = dfs(tree.root_node, fn=return_method(class_name, method_name, None))
 
     if method_node is None:
-        log.exception(
-            f"NO SUCH METHOD {actual_filepath=} {class_name=} {method_name=} {lineno=}"
-        )
+        log.debug(f"NO SUCH METHOD {actual_filepath=} {class_name=} {method_name=} {lineno=}")
 
     return method_node
 
 
-def is_forward(method_node):
-    block = get_child(method_node, lambda n: n.type == "block")
+def get_method_type(method_node):
+    block = get_child(method_node, lambda n: n.type == "block", none_default=True)
+    if block is None:
+        return "no_body"
     block_stmts = get_children(block, lambda n: n.is_named)
-    return len(block_stmts) == 1 and block_stmts[0].type == "return_statement"
+    if len(block_stmts) == 1 and block_stmts[0].type == "return_statement":
+        return "forward"
+    return "normal"
 
 
 def test_get_method_node():

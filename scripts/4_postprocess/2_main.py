@@ -1,13 +1,30 @@
 import functools
 import json
 import traceback
-import xml.etree.ElementTree as ET
-from collections import defaultdict
+# import xml.etree.ElementTree as ET
+import lxml.etree as ET
+from collections import OrderedDict
 from multiprocessing import Manager, Pool
 from pathlib import Path
 
 import tqdm
 from exampleizer import *
+
+import logging
+root = logging.getLogger()
+root.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO)
+handler.setFormatter(formatter)
+root.addHandler(handler)
+
+handler = logging.FileHandler("debug.log")
+handler.setLevel(logging.DEBUG)
+handler.setFormatter(formatter)
+root.addHandler(handler)
 
 
 def count_calls(xml):
@@ -29,48 +46,43 @@ def enumerate_calls(xml):
             node.clear()
 
 
-def parse_xml(xml, nproc, single_thread, desc):
+def parse_xml(xml, nproc, single_thread):
     """Parse xml and return a generator of the representations of each <call> tag."""
-    num_calls = count_calls(xml)
     calls = enumerate_calls(xml)
 
     invalid_methods = set()
-    with Manager() as man:
-        with Pool(nproc) as pool:
-            if single_thread:
-                it = map(
-                    functools.partial(
-                        process_one,
-                        xml=xml,
-                    ),
-                    calls,
-                )
-            else:
-                it = pool.imap(
-                    functools.partial(
-                        process_one,
-                        xml=xml,
-                    ),
-                    calls,
-                )
-            with tqdm.tqdm(
-                it,
-                desc=desc,
-                total=num_calls,
-            ) as pbar:
-                for result in pbar:
-                    if result["result"] == "invalid_call":
-                        invalid_methods.add(
-                            (result["class_name"], result["method_name"])
-                        )
-                    yield result
-        if len(invalid_methods) > 0:
-            print(
-                xml,
-                "Invalid calls:",
-                json.dumps(sorted(invalid_methods), indent=2),
-                sep="\n",
+    if single_thread:
+        nproc = 1
+    with Pool(nproc) as pool:
+        if single_thread:
+            it = map(
+                functools.partial(
+                    process_one,
+                    xml=xml,
+                ),
+                calls,
             )
+        else:
+            it = pool.imap(
+                functools.partial(
+                    process_one,
+                    xml=xml,
+                ),
+                calls,
+            )
+        for result in it:
+            if result["result"] == "invalid_call":
+                invalid_methods.add(
+                    (result["class_name"], result["method_name"])
+                )
+            yield result
+    if len(invalid_methods) > 0:
+        print(
+            xml,
+            "Invalid calls:",
+            json.dumps(sorted(invalid_methods), indent=2),
+            sep="\n",
+        )
 
 
 def main():
@@ -87,32 +99,46 @@ def main():
     all_xmls = list(Path(args.input_dir).glob("*.xml"))
     if args.sample:
         # all_xmls = all_xmls[:2]
-        all_xmls = all_xmls[2:4]
+        all_xmls = all_xmls[:5]
         # all_xmls = [
         #     Path("postprocessed_xmls/trace-apache-commons-bcel-BcelFuzzer.xml.repair.xml")
         # ]
     all_xmls = sorted(all_xmls, key=lambda p: p.name)
-    print(len(all_xmls), "XMLs")
+    log.info("Processing %d XMLs", len(all_xmls))
 
-    all_results = defaultdict(int)
+    all_results = OrderedDict()
 
     with open(args.output_file, "w") as outf:
         for i, xml in enumerate(all_xmls):
+            log.debug(f"PROCESS XML %s", str(xml))
+            xml_results = OrderedDict()
             try:
                 it = parse_xml(
                     xml,
                     args.nproc,
                     args.single_thread,
-                    f"XML ({i+1}/{len(all_xmls)}) {xml}",
                 )
-                for result in it:
-                    if result["result"] == "success":
-                        outf.write(json.dumps(result["data"]) + "\n")
-                    all_results[result["result"]] += 1
+                desc = f"XML ({i+1}/{len(all_xmls)}) {xml}"
+                with tqdm.tqdm(
+                    it,
+                    desc=desc,
+                    total=count_calls(xml),
+                ) as pbar:
+                    for result in pbar:
+                        if result["result"] == "success":
+                            outf.write(json.dumps(result["data"]) + "\n")
+                        result_code = result["result"]
+                        if result_code not in xml_results:
+                            xml_results[result_code] = 0
+                        xml_results[result_code] += 1
+                        pbar.set_postfix(xml_results)
             except Exception:
-                all_results["failed_xml"] += 1
+                if "failed_xml" not in xml_results:
+                    xml_results["failed_xml"] = 0
+                xml_results["failed_xml"] += 1
                 print("ERROR in file:", str(xml))
                 print(traceback.format_exc())
+            all_results.update(xml_results)
     print("RESULTS:")
     print(json.dumps(all_results, indent=2))
 
