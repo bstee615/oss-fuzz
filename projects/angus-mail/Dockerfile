@@ -20,9 +20,9 @@ RUN curl -L https://dlcdn.apache.org/maven/maven-3/3.8.7/binaries/apache-maven-3
     unzip maven.zip -d $SRC/maven && \
     rm -rf maven.zip
 
-ENV MVN $SRC/maven/apache-maven-3.8.6/bin/mvn
+ENV MVN $SRC/maven/apache-maven-3.8.7/bin/mvn
 
-RUN git clone --depth 1 https://github.com/eclipse-ee4j/angus-mail.git angus-mail
+RUN git clone https://github.com/eclipse-ee4j/angus-mail.git angus-mail && cd angus-mail && git checkout 29c28255cbda42618352aa04faa2048587d9ae39
 
 COPY build.sh $SRC/
 COPY *Fuzzer.java $SRC/

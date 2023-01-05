@@ -4,7 +4,7 @@ import re
 import difflib
 import sys
 
-base_dir = Path("projects_original")
+base_dir = Path("projects")
 base_dst_dir = Path("projects")
 
 def transform_project(project):
