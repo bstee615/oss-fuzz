@@ -1052,7 +1052,7 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
 
   debugger = ''
   env = ['HELPER=True']
-  image_name = 'base-runner'
+  image_name = 'base-runner:recorder-1.0.0'
 
   if valgrind:
     debugger = 'valgrind --tool=memcheck --track-origins=yes --leak-check=full'
@@ -1090,6 +1090,8 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
       '%s:/testcase' % _get_absolute_path(testcase_path),
       '-v',
       '%s:/java-tracer' % (Path(__file__).parent.parent.parent / 'trace-modeling/trace_collection_java/app/build/libs'),
+      '-v',
+      '%s:/recorder' % (Path(__file__).parent.parent / 'recorder_logs'),
       # '-v',
       # '%s:/instrumentation.jar' % '/home/benjis/code/java-instrumentation/build/libs/java-instrumentation-1.0-SNAPSHOT.jar',
       '-p', port + ':' + port,

@@ -35,3 +35,4 @@ scripts/4_postprocess/5_stats2_run01_newdata.zip
 postprocessed-xmls-lxml/1_repair.txt
 do_one*/
 recorder-1.0.0.jar
+recorder_logs/
