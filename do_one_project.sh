@@ -14,48 +14,41 @@ HARDCODED_JSON_FILE="${LOG_NAME}_hardcoded.json"
 XML_FILE_2="${LOG_NAME}_2.xml"
 TRACER_LOG_FILE_2="${LOG_NAME}_tracer2.txt"
 
+CORPUS_ROOT="/run/media/benjis/BASILISK/Files/biggie/oss-fuzz/fuzz_10m_trace_3h/fuzz_run_5_complete/corpora-10m"
+
 set -e
 set -x
 
-git checkout projects/$PROJECT
+function build_fuzzer() {
+    echo N | python3 infra/helper.py build_image $1
+    python3 infra/helper.py build_fuzzers --sanitizer address --architecture x86_64 $1
+}
 
+# Instrument fuzzer
+git checkout projects/$PROJECT
 echo "Instrumenting $PROJECT $FUZZER..."
 python modify_build_scripts.py $PROJECT
 java -jar transformer/build/libs/transformer-1.0-SNAPSHOT.jar --mode INSTRUMENT --fuzzerDir projects/$PROJECT/ --fuzzerName $FUZZER
+build_fuzzer $PROJECT
 
-echo N | python3 infra/helper.py build_image $PROJECT
-python3 infra/helper.py build_fuzzers --sanitizer address --architecture x86_64 $PROJECT
-
+# Run with tracer
+echo "Tracing $PROJECT $FUZZER -> $JSON_FILE"
 (python3 infra/helper.py reproduce --tracer --tracer_port 8000 --num_runs 1 --container_name foo $PROJECT $FUZZER \
-    corpus-test/$PROJECT/1b02207ba9e9671cce31ec2e155dbed229efb79a timeout=300 instrumentation_excludes="**" 2>&1 \
+    $CORPUS_ROOT/$PROJECT/address-x86_64-$FUZZER timeout=300 instrumentation_excludes="**" 2>&1 \
     | tee $TXT_FILE \
     | bash print_fuzzeroutput.sh | jq --slurp) > $JSON_FILE &
-
-echo "WAITING FOR CONTAINER TO START" && sleep 10s
-
-(java -jar /run/media/benjis/FSCOPY/17537297-282f-49b5-b466-0f3332b732f8/home/benjis/code/bug-benchmarks/trace-modeling/trace_collection_java/app/build/libs/tracer.jar \
+sleep 10s
+(java -jar ../trace-modeling/trace_collection_java/app/build/libs/tracer.jar \
     -t dt_socket -p 8000 -m fuzzerTestOneInput -v DEBUG \
     -l $XML_FILE 2>&1 | tee $TRACER_LOG_FILE) &
-
 wait
 
+# Postprocess results
 python transform_xml_to_callresults.py $XML_FILE $RESULTS_JSON_FILE
 read -p "MODIFY HARNESS using $RESULTS_JSON_FILE, then Press enter to continue"
 
+# Reset, then hardcode fuzzer
+git checkout projects/$PROJECT
 echo "Hardcoding inputs $PROJECT $FUZZER..."
-java -jar transformer/build/libs/transformer-1.0-SNAPSHOT.jar --mode HARDCODE --fuzzerDir projects/$PROJECT/ --fuzzerName $FUZZER --jsonFile $JSON_FILE
-
-echo N | python3 infra/helper.py build_image $PROJECT
-python3 infra/helper.py build_fuzzers --sanitizer address --architecture x86_64 $PROJECT
-
-(python3 infra/helper.py reproduce --tracer --tracer_port 8000 --num_runs 1 --container_name foo $PROJECT $FUZZER \
-    corpus-test/$PROJECT/1b02207ba9e9671cce31ec2e155dbed229efb79a instrumentation_excludes="**" 2>&1 \
-    | tee $HARDCODED_TXT_FILE) &
-
-echo "WAITING FOR CONTAINER TO START" && sleep 10s
-
-(java -jar /run/media/benjis/FSCOPY/17537297-282f-49b5-b466-0f3332b732f8/home/benjis/code/bug-benchmarks/trace-modeling/trace_collection_java/app/build/libs/tracer.jar \
-    -t dt_socket -p 8000 -m fuzzerTestOneInput -v DEBUG \
-    -l $XML_FILE_2 2>&1 | tee $TRACER_LOG_FILE_2) &
-
-wait
+java -jar transformer/build/libs/transformer-1.0-SNAPSHOT.jar --mode HARDCODE --fuzzerDir projects/$PROJECT/ --fuzzerName $FUZZER --jsonFile $JSON_FILE --resultFile $RESULTS_JSON_FILE
+build_fuzzer $PROJECT
