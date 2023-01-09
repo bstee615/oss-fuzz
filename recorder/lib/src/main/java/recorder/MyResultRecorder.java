@@ -43,68 +43,68 @@ public final class MyResultRecorder implements AutoCloseable {
     }
   }
 
-  private void logResultHelper(String value, String location) {
-    writeToFile(String.format("{\"value\": %s, \"location\": %s}", value, location));
+  private void logResultHelper(String value, String location, String type) {
+    writeToFile(String.format("{\"value\": %s, \"location\": %s, \"type\": %s}", value, location, gson.toJson(type)));
   }
 
   public <T> void logResult(T obj, String location) {
-    logResultHelper(gson.toJson(obj.toString()), location);
+    logResultHelper(gson.toJson(obj.toString()), location, "Object");
   }
 
   public <T> void logResult(boolean obj, String location) {
-    logResultHelper(gson.toJson(obj), location);
+    logResultHelper(gson.toJson(obj), location, "boolean");
   }
 
   public <T> void logResult(boolean[] obj, String location) {
-    logResultHelper(gson.toJson(obj), location);
+    logResultHelper(gson.toJson(obj), location, "boolean[]");
   }
 
   public <T> void logResult(byte obj, String location) {
-    logResultHelper(gson.toJson(obj), location);
+    logResultHelper(gson.toJson(obj), location, "byte");
   }
 
   public <T> void logResult(byte[] obj, String location) {
-    logResultHelper(gson.toJson(obj), location);
+    logResultHelper(gson.toJson(obj), location, "byte[]");
   }
 
   public <T> void logResult(char obj, String location) {
-    logResultHelper(gson.toJson(obj), location);
+    logResultHelper(gson.toJson(obj), location, "char");
   }
 
   public <T> void logResult(char[] obj, String location) {
-    logResultHelper(gson.toJson(obj), location);
+    logResultHelper(gson.toJson(obj), location, "char[]");
   }
 
   public <T> void logResult(int obj, String location) {
-    logResultHelper(gson.toJson(obj), location);
+    logResultHelper(gson.toJson(obj), location, "int");
   }
 
   public <T> void logResult(int[] obj, String location) {
-    logResultHelper(gson.toJson(obj), location);
+    logResultHelper(gson.toJson(obj), location, "int[]");
   }
 
   public <T> void logResult(short obj, String location) {
-    logResultHelper(gson.toJson(obj), location);
+    logResultHelper(gson.toJson(obj), location, "short");
   }
 
   public <T> void logResult(short[] obj, String location) {
-    logResultHelper(gson.toJson(obj), location);
+    logResultHelper(gson.toJson(obj), location, "short[]");
   }
 
   public <T> void logResult(float obj, String location) {
-    logResultHelper(gson.toJson(obj), location);
+    logResultHelper(gson.toJson(obj), location, "float");
   }
 
   public <T> void logResult(float[] obj, String location) {
-    logResultHelper(gson.toJson(obj), location);
+    logResultHelper(gson.toJson(obj), location, "float[]");
   }
 
   public <T> void logResult(double obj, String location) {
-    logResultHelper(gson.toJson(obj), location);
+    logResultHelper(gson.toJson(obj), location, "double");
   }
 
   public <T> void logResult(double[] obj, String location) {
-    logResultHelper(gson.toJson(obj), location);
+    logResultHelper(gson.toJson(obj), location, "double[]");
   }
 
   public void close() throws Exception {
