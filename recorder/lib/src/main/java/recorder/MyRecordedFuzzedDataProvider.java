@@ -22,6 +22,7 @@ public final class MyRecordedFuzzedDataProvider implements FuzzedDataProvider, A
   private Writer writer;
   private Writer resultWriter;
   private int ordinal = -1;
+  String lastLocation = null;
 
   public MyRecordedFuzzedDataProvider(FuzzedDataProvider provider, String baseDir, String fuzzerTargetName) {
     System.err.println(String.format("GREAT! Instrumented the class. provider.remainingBytes(): %d baseDir: \"%s\" fuzzerTargetName: \"%s\"", provider.remainingBytes(), baseDir, fuzzerTargetName));
@@ -47,6 +48,12 @@ public final class MyRecordedFuzzedDataProvider implements FuzzedDataProvider, A
     assert true;
   }
 
+  public MyRecordedFuzzedDataProvider setLocation(String location) {
+    assert lastLocation == null;
+    lastLocation = location;
+    return this;
+  }
+
   private void writeToFile(String string) {
     System.err.println(String.format("WRITE TO FILE: \"%s\"", string));
     try {
@@ -60,6 +67,10 @@ public final class MyRecordedFuzzedDataProvider implements FuzzedDataProvider, A
   private String encodeData(String type, String value) {
     // StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace(); // NOTE: disable because no longer needed
     String stackTrace = "<skipped>";
+    // assert lastLocation != null;
+    String result = String.format("{\"type\": \"%s\", \"value\": %s, \"stacktrace\": %s, \"location\": %s}", type, value, gson.toJson(stackTrace), lastLocation);
+    lastLocation = null;
+    return result;
   }
 
   private String encodeData(String type, int value) {
