@@ -39,6 +39,7 @@ for fuzzer in $(find $SRC -name '*Fuzzer.java'); do
 
   # Create an execution wrapper that executes Jazzer with the correct arguments.
   echo "#!/bin/bash
+set -x
 # LLVMFuzzerTestOneInput for fuzzer detection.
 this_dir=\$(dirname \"\$0\")
 if [[ \"\$@\" =~ (^| )-runs=[0-9]+($| ) ]]; then
