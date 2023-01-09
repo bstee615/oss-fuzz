@@ -31,14 +31,19 @@ function build_fuzzer() {
 # Instrument fuzzer
 git checkout projects/$PROJECT
 echo "Instrumenting $PROJECT $FUZZER..."
-python modify_build_scripts.py $PROJECT
+python $(dirname $0)/modify_build_scripts.py $PROJECT
 java -jar transformer/build/libs/transformer-1.0-SNAPSHOT.jar --mode INSTRUMENT --fuzzerName $FUZZER --baseLoggingDir /recorder --write --fuzzerDir projects/$PROJECT/ --jarDir build/out/$PROJECT/
 build_fuzzer $PROJECT
 
 # Run with tracer
 echo "Running $PROJECT $FUZZER -> $JSON_FILE"
+rm recorder_logs/*.{jsonl,json}
 python3 infra/helper.py reproduce --num_runs 1 --container_name foo $PROJECT $FUZZER \
     $(ls -d $CORPUS_ROOT/$PROJECT/address-x86_64-$FUZZER/* | head -n1) timeout=300 instrumentation_excludes="**"
+for f in recorder_logs/*.jsonl
+do
+    jq --slurp < $f > ${f%.jsonl}.json
+done
 
 # Reset, then hardcode fuzzer
 # git checkout projects/$PROJECT
