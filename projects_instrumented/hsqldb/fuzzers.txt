@@ -1,4 +1,0 @@
-SqlPreparedStatementFuzzer
-SqlStatementFuzzer
-ConnectionOptionsFuzzer
-TestServer

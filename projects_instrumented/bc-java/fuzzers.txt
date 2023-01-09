@@ -1,4 +1,0 @@
-CMSEnvelopedDataParserFuzzer
-X509CertPairParserFuzzer
-PEMParserFuzzer
-EncodingFuzzer

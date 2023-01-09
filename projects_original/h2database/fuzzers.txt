@@ -1,7 +1,0 @@
-SqlPreparedStatementFuzzer
-ServerLoginFuzzer
-SqlStatementFuzzer
-CsvReadFuzzer
-TestServer
-CsvReadBackFuzzer
-ShellFuzzer

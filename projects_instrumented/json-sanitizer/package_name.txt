@@ -1,2 +1,0 @@
-com.google.gson
-com.google.json

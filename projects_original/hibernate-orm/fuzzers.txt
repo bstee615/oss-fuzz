@@ -1,5 +1,0 @@
-SerializableClass
-SessionFactoryBuilder
-PersistentClass
-PersistentClassFuzzer
-TestServer
