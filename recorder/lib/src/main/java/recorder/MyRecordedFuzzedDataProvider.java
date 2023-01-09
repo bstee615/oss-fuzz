@@ -20,14 +20,17 @@ public final class MyRecordedFuzzedDataProvider implements FuzzedDataProvider, A
   private FuzzedDataProvider provider;
   private Gson gson;
   private Writer writer;
+  private Writer resultWriter;
   private int ordinal = -1;
 
   public MyRecordedFuzzedDataProvider(FuzzedDataProvider provider, String baseDir, String fuzzerTargetName) {
     System.err.println(String.format("GREAT! Instrumented the class. provider.remainingBytes(): %d baseDir: \"%s\" fuzzerTargetName: \"%s\"", provider.remainingBytes(), baseDir, fuzzerTargetName));
     this.provider = provider;
     String filename = String.format("%s/fuzzerOutput_%s.jsonl", baseDir, fuzzerTargetName);
+    String resultFilename = String.format("%s/fuzzerResult_%s.jsonl", baseDir, fuzzerTargetName);
     try {
         this.writer = new BufferedWriter(new FileWriter(filename, true));
+        this.resultWriter = new BufferedWriter(new FileWriter(resultFilename, true));
     }
     catch (IOException ex) {
         System.err.printf("Error initializing writer: %s%n", filename);
@@ -35,8 +38,73 @@ public final class MyRecordedFuzzedDataProvider implements FuzzedDataProvider, A
     this.gson = new Gson();
   }
 
+  private void logResultHelper(String value, String location) throws IOException {
+    resultWriter.append(String.format("{\"value\": %s, \"location\": %s}", value, location));
+  }
+
+  public <T> void logResult(T obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj.toString()), location);
+  }
+
+  public <T> void logResult(boolean obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj), location);
+  }
+
+  public <T> void logResult(boolean[] obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj), location);
+  }
+
+  public <T> void logResult(byte obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj), location);
+  }
+
+  public <T> void logResult(byte[] obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj), location);
+  }
+
+  public <T> void logResult(char obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj), location);
+  }
+
+  public <T> void logResult(char[] obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj), location);
+  }
+
+  public <T> void logResult(int obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj), location);
+  }
+
+  public <T> void logResult(int[] obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj), location);
+  }
+
+  public <T> void logResult(short obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj), location);
+  }
+
+  public <T> void logResult(short[] obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj), location);
+  }
+
+  public <T> void logResult(float obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj), location);
+  }
+
+  public <T> void logResult(float[] obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj), location);
+  }
+
+  public <T> void logResult(double obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj), location);
+  }
+
+  public <T> void logResult(double[] obj, String location) throws IOException {
+    logResultHelper(gson.toJson(obj), location);
+  }
+
   public void close() throws Exception {
     this.writer.close();
+    this.resultWriter.close();
   }
 
   public <T> void noop(T obj) {
