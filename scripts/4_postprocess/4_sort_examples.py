@@ -9,7 +9,7 @@ parser.add_argument('output_file')
 args = parser.parse_args()
 
 with open(args.input_file) as inf:
-    num_lines = sum(1 for _ in inf)
+    num_lines = sum(1 for _ in tqdm.tqdm(inf, desc="count lines"))
 
 with jsonlines.open(args.input_file) as inf, jsonlines.open(args.output_file, "w") as outf:
     def write_examples(examples):
