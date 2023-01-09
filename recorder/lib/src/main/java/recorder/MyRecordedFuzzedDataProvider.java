@@ -66,9 +66,8 @@ public final class MyRecordedFuzzedDataProvider implements FuzzedDataProvider, A
 
   private String encodeData(String type, String value) {
     // StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace(); // NOTE: disable because no longer needed
-    String stackTrace = "<skipped>";
     // assert lastLocation != null;
-    String result = String.format("{\"type\": \"%s\", \"value\": %s, \"stacktrace\": %s, \"location\": %s}", type, value, gson.toJson(stackTrace), lastLocation);
+    String result = String.format("{\"type\": \"%s\", \"value\": %s, \"location\": %s}", type, value, lastLocation);
     lastLocation = null;
     return result;
   }
