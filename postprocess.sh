@@ -20,4 +20,4 @@ INFILE="$OUTFILE"
 OUTFILE="${INFILE%.jsonl}_sort.jsonl"
 python scripts/4_postprocess/4_sort_examples.py $INFILE $OUTFILE
 
-python filter_variables.py
+python scripts/4_postprocess/8_filter_variables.py
