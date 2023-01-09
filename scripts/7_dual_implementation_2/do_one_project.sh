@@ -32,21 +32,28 @@ function build_fuzzer() {
 git checkout projects/$PROJECT
 echo "Instrumenting $PROJECT $FUZZER..."
 python $(dirname $0)/modify_build_scripts.py $PROJECT
-java -jar transformer/build/libs/transformer-1.0-SNAPSHOT.jar --mode INSTRUMENT --fuzzerName $FUZZER --baseLoggingDir /recorder --write --fuzzerDir projects/$PROJECT/ --jarDir build/out/$PROJECT/
+java -jar transformer/build/libs/transformer-1.0-SNAPSHOT.jar \
+    --write \
+    --mode INSTRUMENT --fuzzerName $FUZZER \
+    --fuzzerDir projects/$PROJECT/ --jarDir build/out/$PROJECT/ --jarDir recorder/lib/build/libs --baseLoggingDir /recorder
 build_fuzzer $PROJECT
 
 # Run with tracer
 echo "Running $PROJECT $FUZZER -> $JSON_FILE"
+FIRST_CORPUS_INPUT="$(ls -d $CORPUS_ROOT/$PROJECT/address-x86_64-$FUZZER/* | head -n1)"
 rm recorder_logs/*.{jsonl,json}
-python3 infra/helper.py reproduce --num_runs 1 --container_name foo $PROJECT $FUZZER \
-    $(ls -d $CORPUS_ROOT/$PROJECT/address-x86_64-$FUZZER/* | head -n1) timeout=300 instrumentation_excludes="**"
+python3 infra/helper.py reproduce --num_runs 1 --container_name foo $PROJECT $FUZZER $FIRST_CORPUS_INPUT timeout=300 instrumentation_excludes="**"
 for f in recorder_logs/*.jsonl
 do
     jq --slurp < $f > ${f%.jsonl}.json
 done
 
 # Reset, then hardcode fuzzer
-# git checkout projects/$PROJECT
-# echo "Hardcoding inputs $PROJECT $FUZZER..."
-# java -jar transformer/build/libs/transformer-1.0-SNAPSHOT.jar --mode HARDCODE --fuzzerDir projects/$PROJECT/ --fuzzerName $FUZZER --jsonFile $JSON_FILE --resultFile $RESULTS_JSON_FILE
-# build_fuzzer $PROJECT
+git checkout projects/$PROJECT
+java -jar transformer/build/libs/transformer-1.0-SNAPSHOT.jar \
+    --write \
+    --mode HARDCODE --fuzzerName $FUZZER \
+    --fuzzerDir projects/$PROJECT/ --jarDir build/out/$PROJECT/ --jarDir recorder/lib/build/libs \
+    --inputFile recorder_logs/fuzzerOutput_ASCIIUtilityFuzzer.json --resultFile recorder_logs/fuzzerResult_ASCIIUtilityFuzzer.json
+build_fuzzer $PROJECT
+python3 infra/helper.py reproduce --num_runs 1 --container_name foo $PROJECT $FUZZER $FIRST_CORPUS_INPUT timeout=300 instrumentation_excludes="**"
