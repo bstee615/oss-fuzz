@@ -145,9 +145,24 @@ def get_dynamic_information(call, method_node):
                     **node.attrib,
                 }
             )
-    lines_covered = list(
-        sorted(set(s["relative_lineno"] for s in steps_data if "relative_lineno" in s))
-    )
+    # lines_covered = list(
+    #     sorted(set(s["relative_lineno"] for s in steps_data if "relative_lineno" in s))
+    # )
+    lines_covered = [
+        {
+            "type": s["type"],
+            "relative_lineno": s["relative_lineno"],
+            "variables": [
+                {
+                    "name": v["name"],
+                    "serializer": v["serializer"],
+                    "source": v["source"],
+                    "type": v["type"],
+                    "text": v["text"],
+                } for v in s["variables"] if v["tag"] == "variable"
+            ]
+        } for s in steps_data if "relative_lineno" in s
+    ]
 
     return entry_variables, lines_covered
 
