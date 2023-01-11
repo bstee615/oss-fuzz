@@ -1,7 +1,9 @@
+#%%
 import logging
 import os
 import traceback
 from pathlib import Path
+from git import Repo
 
 from tree_sitter import Language, Parser
 
@@ -215,6 +217,56 @@ def test_get_method_node():
     get_method_node(src_fpath, class_name, method_name, 160)
 
 
+def is_not_permeable(n):
+    if not n.is_named:
+        return False
+    elif n.type in ("block", "line_comment", "block_comment"):
+        return False
+    elif n.type == "local_variable_declaration":
+        var_decl = get_children(n, lambda n: n.type == "variable_declarator")
+        for decl in var_decl:
+            assignment_operator = get_child(decl, lambda n: n.type == "=", none_default=True)
+            if assignment_operator is not None:
+                return True
+        return False
+    else:
+        return True
+
+
+def get_first_stmt(method_node):
+    block = get_child(method_node, lambda n: n.type == "block")
+    first_stmt = get_child(block, is_not_permeable)
+    while first_stmt.type in ("try_statement",):
+        try_block = get_child(first_stmt, lambda n: n.type == "block")
+        first_stmt = get_child(try_block, is_not_permeable)
+    return first_stmt
+
+
+def test_get_first_stmt_vardecl():
+    project = "apache-commons"
+    class_name = "ArchiveUtils"
+    method_name = "matchAsciiBuffer"
+    repo = Repo("repos/" + project)
+    src_fpath = get_source_file(repo, class_name)[0]
+    method_node = get_method_node(src_fpath, class_name, method_name, 76)
+    assert get_first_stmt(method_node).start_point[0]+1 == 76
+
+
+def test_get_first_stmt_linecomment():
+    project = "apache-commons"
+    class_name = "org.apache.commons.compress.archivers.tar.TarUtils"
+    method_name = "exceptionMessage"
+    repo = Repo("repos/" + project)
+    src_fpath = get_source_file(repo, class_name)[0]
+    method_node = get_method_node(src_fpath, class_name, method_name, 258)
+    assert get_first_stmt(method_node).start_point[0]+1 == 258
+
+
+def test_get_first_stmt():
+    method_node = get_method_node("projects/apache-commons/CompressZipFuzzer.java", "CompressZipFuzzer", "fuzzerTestOneInput", 30)
+    assert get_first_stmt(method_node).start_point[0]+1 == 30
+
+
 if __name__ == "__main__":
     from git import Repo
 
@@ -275,3 +327,4 @@ if __name__ == "__main__":
     method_name = "getLogger"
     lineno = 45
     print(get_method_node(src_fpath, class_name, method_name, lineno, do_print=False))
+

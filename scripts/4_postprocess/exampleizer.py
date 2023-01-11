@@ -227,6 +227,9 @@ def process_one(call, xml):
 
         entry_variables, lines_covered = get_dynamic_information(call, method_node)
 
+        # Check that the entry and exit lined up with the method node children
+        check_method_validity(call, method_node)
+
         return {
             "result": "success",
             "data": {
@@ -256,6 +259,28 @@ def process_one(call, xml):
             "method_name": method_name,
             "ex": ex,
         }
+
+def check_method_validity(call, method_node):
+    entry_lineno = None
+    exit_lineno = None
+    for child in call:
+        if child.tag == "tracepoint":
+            if child.attrib["type"] == "entry":
+                entry_lineno = int(child.attrib["location"].split(":")[1])
+            if child.attrib["type"] == "exit":
+                exit_lineno = int(child.attrib["location"].split(":")[1])
+    if entry_lineno is not None:
+        first_stmt = get_first_stmt(method_node)
+        assert first_stmt.start_point[0]+1 == entry_lineno, (str(first_stmt), entry_lineno)
+
+    if exit_lineno is not None:
+        q = [method_node]
+        while len(q) > 0:
+            n = q.pop(0)
+            if n.start_point[0]+1 == exit_lineno:
+                assert n.type in ("return_statement", "}"), (str(n), exit_lineno)
+            else:
+                q.extend(n.children)
     
 def test_process_no_lineno():
     print()
