@@ -40,10 +40,13 @@ def count_calls(xml):
 def enumerate_calls(xml):
     """Return a generator yielding all <call> nodes in xml."""
     it = ET.iterparse(xml, events=("end",))
-    for _, node in it:
-        if node.tag == "call":
-            yield node
-            node.clear()
+    try:
+        for _, node in it:
+            if node.tag == "call":
+                yield node
+                node.clear()
+    except ET.ParseError as ex:
+        log.error(f"XML file ended prematurely. {ex}")
 
 
 def parse_xml(xml, nproc, single_thread):
@@ -99,7 +102,7 @@ def main():
     all_xmls = list(Path(args.input_dir).glob("*.xml"))
     if args.sample:
         # all_xmls = all_xmls[:2]
-        all_xmls = all_xmls[:5]
+        all_xmls = all_xmls[:10]
         # all_xmls = [
         #     Path("postprocessed_xmls/trace-apache-commons-bcel-BcelFuzzer.xml.repair.xml")
         # ]
