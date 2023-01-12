@@ -109,9 +109,12 @@ def main():
     all_xmls = sorted(all_xmls, key=lambda p: p.name)
     log.info("Processing %d XMLs", len(all_xmls))
 
+    name, ext = Path(args.output_file).name.rsplit(".", maxsplit=1)
+    error_file = Path(args.output_file).parent / (name + "_error." + ext)
+
     all_results = OrderedDict()
 
-    with open(args.output_file, "w") as outf:
+    with open(args.output_file, "w") as outf, open(error_file, "w") as error_outf:
         for i, xml in enumerate(all_xmls):
             log.debug(f"PROCESS XML %s", str(xml))
             xml_results = OrderedDict()
@@ -130,6 +133,8 @@ def main():
                     for result in pbar:
                         if result["result"] == "success":
                             outf.write(json.dumps(result["data"]) + "\n")
+                        else:
+                            error_outf.write(json.dumps(result) + "\n")
                         result_code = result["result"]
                         if result_code not in xml_results:
                             xml_results[result_code] = 0

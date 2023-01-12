@@ -183,6 +183,7 @@ def process_one(call, xml):
             "result": "invalid_call",
             "class_name": location["class_name"],
             "method_name": location["method_name"],
+            # "call_xml": ET.tostring(call).decode(),
         }
     if location["inner_class_name"] is not None:
         return {
@@ -217,8 +218,9 @@ def process_one(call, xml):
                 "class_name": class_name,
                 "method_name": method_name,
                 "lineno": lineno,
-                "src_fpath": src_fpath,
-                "xml": xml,
+                "src_fpath": str(src_fpath),
+                "xml": str(xml),
+                # "call_xml": ET.tostring(call).decode(),
             }
 
         assert method_node is not None, method_node
@@ -228,7 +230,20 @@ def process_one(call, xml):
         entry_variables, lines_covered = get_dynamic_information(call, method_node)
 
         # Check that the entry and exit lined up with the method node children
-        check_method_validity(call, method_node)
+        try:
+            check_method_validity(call, method_node)
+        except AssertionError as ex:
+            return {
+                "result": "invalid_method",
+                "assertion": str(ex),
+                "project": project,
+                "class_name": class_name,
+                "method_name": method_name,
+                "lineno": lineno,
+                "src_fpath": str(src_fpath),
+                "xml": str(xml),
+                # "call_xml": ET.tostring(call).decode(),
+            }
 
         return {
             "result": "success",
