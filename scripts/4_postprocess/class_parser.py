@@ -3,8 +3,9 @@ import logging
 import os
 import traceback
 from pathlib import Path
-from git import Repo
+from pprint import pp
 
+from git import Repo
 from tree_sitter import Language, Parser
 
 log = logging.getLogger(__name__)
@@ -45,26 +46,45 @@ def decompose_location(location):
     """
     Split a location org.benjis.Foo$Bar.baz() into its components "org.benjis.Foo", "bar", "Bar" (inner class)
     """
-    method_id = location.split("(")[0]
+    method_id, rest = location.split("(")
     class_name, method_name = method_id.rsplit(".", maxsplit=1)
     dollar_idx = class_name.find("$")
     after_dollar_part = None
     if dollar_idx != -1:
         class_name, after_dollar_part = class_name.split("$", maxsplit=1)
+    rest = rest[:-1]
+    parameter_types = rest.split(", ")
     return {
         "class_name": class_name,
         "method_name": method_name,
         "inner_class_name": after_dollar_part,
+        "parameter_types": parameter_types,
     }
 
 
 def test_decompose_location():
-    decompose_location(
+    fuzzerTestOneInput = decompose_location(
         "ASCIIUtilityFuzzer.fuzzerTestOneInput(com.code_intelligence.jazzer.api.FuzzedDataProvider)"
     )
-    decompose_location(
+    assert fuzzerTestOneInput["class_name"] == "ASCIIUtilityFuzzer"
+    assert fuzzerTestOneInput["method_name"] == "fuzzerTestOneInput"
+    assert fuzzerTestOneInput["inner_class_name"] == None
+    assert fuzzerTestOneInput["parameter_types"] == [
+        'com.code_intelligence.jazzer.api.FuzzedDataProvider',
+    ]
+    pp(fuzzerTestOneInput)
+    visitBeforeChildren = decompose_location(
         "org.apache.commons.configuration2.tree.InMemoryNodeModel$1.visitBeforeChildren(java.lang.Object, org.apache.commons.configuration2.tree.NodeHandler)"
     )
+    assert visitBeforeChildren["class_name"] == "org.apache.commons.configuration2.tree.InMemoryNodeModel"
+    assert visitBeforeChildren["method_name"] == "visitBeforeChildren"
+    assert visitBeforeChildren["inner_class_name"] == "1"
+    assert visitBeforeChildren["inner_class_name"] == "1"
+    assert visitBeforeChildren["parameter_types"] == [
+        'java.lang.Object',
+        'org.apache.commons.configuration2.tree.NodeHandler',
+    ]
+    pp(visitBeforeChildren)
 
 
 def get_source_file(repo, class_name_fq):
