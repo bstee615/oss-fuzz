@@ -257,7 +257,7 @@ def process_one(call, xml):
             "project": project,
             "class_name": class_name,
             "method_name": method_name,
-            "ex": ex,
+            "ex": str(traceback.format_exc()),
         }
 
 def check_method_validity(call, method_node):
