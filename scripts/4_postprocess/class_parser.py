@@ -70,7 +70,7 @@ def test_decompose_location():
 def get_source_file(repo, class_name_fq):
     class_filepath = class_name_fq.replace(".", "/")
     actual_filepaths = list(
-        Path(repo.working_dir).rglob("*/" + class_filepath + ".java")
+        Path(repo).rglob("*/" + class_filepath + ".java")
     )
     assert len(actual_filepaths) >= 1, (actual_filepaths, repo, class_name_fq)
     actual_filepaths = sorted(actual_filepaths, key=lambda p: str(p.absolute()))

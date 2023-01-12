@@ -13,6 +13,9 @@ import logging
 log = logging.getLogger(__name__)
 
 
+jar_code_dir = Path("jar_code")
+
+
 def serialize_variable(node):
     """
     Represent a <variable> or sibling tag as a string.
@@ -70,14 +73,15 @@ auto_lookup = {
 
 def get_repo(project, class_name):
     """Return the repo containing the project's source code."""
-    matched_repo_name = None
-    for package_path, repo_name in auto_lookup.items():
-        if class_name.startswith(package_path):
-            matched_repo_name = repo_name
-    if matched_repo_name is not None:
-        return Repo("repos/" + matched_repo_name), True
-    else:
-        return Repo("repos/" + project), False
+    return jar_code_dir / project, False
+    # matched_repo_name = None
+    # for package_path, repo_name in auto_lookup.items():
+    #     if class_name.startswith(package_path):
+    #         matched_repo_name = repo_name
+    # if matched_repo_name is not None:
+    #     return Repo("repos/" + matched_repo_name).working_dir, True
+    # else:
+    #     return Repo("repos/" + project).working_dir, False
 
 
 def get_src_fpath(project, class_name):
@@ -286,14 +290,14 @@ def check_method_validity(call, method_node):
                 exit_lineno = int(child.attrib["location"].split(":")[1])
     if entry_lineno is not None:
         first_stmt = get_first_stmt(method_node)
-        assert first_stmt.start_point[0]+1 == entry_lineno, (str(first_stmt), entry_lineno)
+        assert first_stmt.start_point[0]+1 == entry_lineno, f"Got invalid statement {str(first_stmt)} at exit {entry_lineno}"
 
     if exit_lineno is not None:
         q = [method_node]
         while len(q) > 0:
             n = q.pop(0)
             if n.start_point[0]+1 == exit_lineno:
-                assert n.type in ("return_statement", "}"), (str(n), exit_lineno)
+                assert n.type in ("return_statement", "}"), f"Got invalid node type {n.type} ({n}) at exit {exit_lineno}"
             else:
                 q.extend(n.children)
     
