@@ -90,9 +90,8 @@ def get_src_fpath(project, class_name):
     """
     repo, fudged = get_repo(project, class_name)
     if class_name.endswith("Fuzzer") or class_name == "ExampleFuzzerNative":
-        src_fpaths = [next(
-            (Path("projects") / project).rglob(class_name.replace(".", "/") + ".java")
-        )]
+        class_filepath = class_name.replace(".", "/")
+        src_fpaths = Path("projects") / project / (class_filepath + ".java")
     else:
         src_fpaths = get_source_file(repo, class_name)
         # TODO: make this better
@@ -206,12 +205,12 @@ def process_one(call, xml):
     parameter_types = location["parameter_types"]
     try:
         try:
-            src_fpaths, fudged = get_src_fpath(project, class_name)
+            src_fpath, fudged = get_src_fpath(project, class_name)
         except AssertionError:
             return {
                 "result": "missing_source",
             }
-        method_node = get_method_node(src_fpaths, class_name, method_name, None, parameter_types)
+        method_node = get_method_node(src_fpath, class_name, method_name, None, parameter_types)
 
         if method_node is None:
             return {

@@ -89,21 +89,7 @@ def test_decompose_location():
 
 def get_source_file(repo, class_name_fq):
     class_filepath = class_name_fq.replace(".", "/")
-    actual_filepaths = list(
-        Path(repo).rglob("*/" + class_filepath + ".java")
-    )
-    assert len(actual_filepaths) >= 1, (actual_filepaths, repo, class_name_fq)
-    actual_filepaths = sorted(actual_filepaths, key=lambda p: str(p.absolute()))
-    # if len(actual_filepaths) > 1:
-        # if class_name_fq.startswith("com.google.common"):
-        #     actual_filepaths = [f for f in actual_filepaths if f.is_relative_to(Path(repo.working_dir)/"guava")]
-        # actual_filepaths = sorted(actual_filepaths, key=lambda p: str(p.absolute()))
-        # for i in range(1, len(actual_filepaths)):
-            # if not filecmp.cmp(actual_filepaths[i-1], actual_filepaths[i]):
-                # log.warn(f"multiple paths. {actual_filepaths=} {repo=} {class_name_fq=}")
-                # break
-        # log.debug(f"multiple paths. {actual_filepaths=} {repo=} {class_name_fq=}")
-    return actual_filepaths
+    return Path(repo) / (class_filepath + ".java")
 
 
 def test_get_source_file():
