@@ -203,6 +203,7 @@ def process_one(call, xml):
     project_fuzzer = xml_stem.split("-", maxsplit=1)[1]
     project, fuzzer_name = project_fuzzer.rsplit("-", maxsplit=1)
     method_name = location["method_name"]
+    parameter_types = location["parameter_types"]
     try:
         try:
             src_fpaths, fudged = get_src_fpath(project, class_name)
@@ -210,10 +211,7 @@ def process_one(call, xml):
             return {
                 "result": "missing_source",
             }
-        for src_fpath in src_fpaths:
-            method_node = get_method_node(src_fpath, class_name, method_name, lineno)
-            if method_node is not None:
-                break
+        method_node = get_method_node(src_fpaths, class_name, method_name, None, parameter_types)
 
         if method_node is None:
             return {
