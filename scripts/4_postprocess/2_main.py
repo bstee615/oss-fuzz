@@ -7,7 +7,10 @@ from collections import OrderedDict
 from multiprocessing import Manager, Pool
 from pathlib import Path
 
+from xml_traverser import enumerate_calls, count_calls
+
 import itertools
+
 import tqdm
 from exampleizer import *
 
