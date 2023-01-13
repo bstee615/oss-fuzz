@@ -182,28 +182,25 @@ def test_parameter_types():
         print(get_parameter_types(method_node))
     print(get_matching_method(class_body, "bar", None, ["int", "t"]))
 
-def get_matching_method(class_body, method_name, lineno, parameter_types):
+def get_matching_method(class_body, method_name, lineno, entry_lineno, parameter_types):
     methods = get_children(class_body, lambda c: c.type == "method_declaration")
     for method in methods:
         method_ident = get_child(method, lambda c: c.type == "identifier")
-        start_line = method.start_point[0]
-        end_line = method.end_point[0]
-        if method_ident.text.decode() == method_name and (
+        if method_ident.text.decode() == method_name:
+            start_line = method.start_point[0]+1
+            end_line = method.end_point[0]+1
+            first_stmt = get_first_stmt_lineno(method)
+            if (
             lineno is None or (start_line <= lineno <= end_line)
-        ) and (
+            ):
+                if (
             parameter_types is None or matches_parameter_types(method, parameter_types)
         ):
             return method
 
 
-# def return_innerclass_method(method_name, lineno):
-#     def fn(node, method_name, lineno):
-#         if node.type == "class_declaration":
-#     return functools.partial(fn, method_name=method_name, lineno=lineno)
-
-
-def return_method(class_name, method_name, lineno, parameter_types):
-    def fn(node, class_name, method_name, lineno, parameter_types, **kwargs):
+def return_method(class_name, method_name, lineno, entry_lineno, parameter_types):
+    def fn(node, class_name, method_name, lineno, entry_lineno, parameter_types, **kwargs):
         decl_nodes = {
             "class_declaration": "class_body",
             "enum_declaration": "enum_body",
@@ -225,7 +222,7 @@ def return_method(class_name, method_name, lineno, parameter_types):
                 return get_matching_method(class_body, method_name, lineno, parameter_types)
 
     return functools.partial(
-        fn, class_name=class_name, method_name=method_name, lineno=lineno, parameter_types=parameter_types
+        fn, class_name=class_name, method_name=method_name, lineno=lineno, entry_lineno=entry_lineno, parameter_types=parameter_types
     )
 
 
@@ -254,10 +251,8 @@ def print_node(node, indent=0, return_string=False, **kwargs):
 
 
 def get_method_node(
-    actual_filepath, class_name_fq, method_name, lineno, parameter_types, do_print=False
+    actual_filepath, class_name_fq, method_name, lineno, entry_lineno, parameter_types, do_print=False
 ):
-    # if "Fuzzer" in class_name_fq:
-    #     breakpoint()
     if "." in class_name_fq:
         class_name = class_name_fq.rsplit(".", maxsplit=1)[1]
     else:
@@ -266,13 +261,10 @@ def get_method_node(
 
     if do_print:
         dfs(tree.root_node, fn=print_node)
-    method_node = dfs(tree.root_node, fn=return_method(class_name, method_name, lineno, parameter_types))
-    # if method_node is None:
-    #     # TODO: FIX THIS SLOPPY SOLUTION.
-    #     method_node = dfs(tree.root_node, fn=return_method(class_name, method_name, None))
+    method_node = dfs(tree.root_node, fn=return_method(class_name, method_name, lineno, entry_lineno, parameter_types))
 
     if method_node is None:
-        log.debug(f"NO SUCH METHOD {actual_filepath=} {class_name=} {method_name=} {lineno=} {parameter_types=}")
+        log.debug(f"NO SUCH METHOD {actual_filepath=} {class_name=} {method_name=} {lineno=} {entry_lineno=} {parameter_types=}")
 
     return method_node
 
