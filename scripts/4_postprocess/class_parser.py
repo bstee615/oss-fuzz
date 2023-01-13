@@ -5,8 +5,10 @@ import traceback
 from pathlib import Path
 from pprint import pp
 
+import io
 from git import Repo
 from tree_sitter import Language, Parser
+from loguru import logger
 
 log = logging.getLogger(__name__)
 
@@ -78,7 +80,7 @@ def decompose_location(location):
     if len(rest) == 0:
         parameter_types = []
     else:
-    parameter_types = rest.split(", ")
+        parameter_types = rest.split(", ")
     return {
         "class_name": class_name,
         "method_name": method_name,
@@ -127,7 +129,64 @@ def test_get_source_file():
     repo = Repo("repos/" + project)
     get_source_file(repo, class_name)
 
+#%%
 
+def get_first_stmt_lineno(method):
+    n = method
+    permeable_node_types = ("try_statement", "method_declaration")
+    first_statement = None
+    while n.type in permeable_node_types:
+        block = get_child(n, "block", none_default=True)
+        if block is None:
+            break
+        def is_vardecl_statement(n):
+            decl = get_child(n, "variable_declarator")
+            has_assignment = get_child(decl, "=", none_default=True) is not None
+            return has_assignment
+        def skip_node(n):
+            if n.type in ("line_comment", "block_comment"):
+                return True
+            elif n.type == "local_variable_declaration":
+                return not is_vardecl_statement(n)
+            return False
+        first_statement = get_child(block, lambda n: (n.is_named and not skip_node(n)) or n.type == "}")
+        n = first_statement
+    if first_statement is None:
+        modifiers = get_child(method, "modifiers", none_default=True)
+        if modifiers is None:
+            is_bodyless = False
+        else:
+            is_bodyless = get_child(modifiers, lambda n: n.type in ("abstract", "native"), none_default=True) is not None
+        if not is_bodyless:
+            node_str = print_node(method, return_string=True)
+            logger.error("MISSED FIRST STATEMENT {}", node_str)
+    return first_statement
+
+#%%
+def test_get_first_foo():
+    code = """public class Foo {
+            /**
+     * Helper method to create a merger of this translator with another set of
+     * translators. Useful in customizing the standard functionality.
+     *
+     * @param translators CharSequenceTranslator array of translators to merge with this one
+     * @return CharSequenceTranslator merging this translator with the others
+     */
+    public final CharSequenceTranslator with(final CharSequenceTranslator... translators) {
+        final CharSequenceTranslator[] newArray = new CharSequenceTranslator[translators.length + 1];
+        newArray[0] = this;
+        System.arraycopy(translators, 0, newArray, 1, translators.length);
+        return new AggregateTranslator(newArray);
+    }
+}"""
+    byt = code.encode()
+    tree = parser.parse(byt)
+    class_decl = get_child(tree.root_node, lambda n: n.type == "class_declaration")
+    class_body = get_child(class_decl, lambda n: n.type == "class_body")
+    method = get_child(class_body, lambda n: n.type == "method_declaration")
+    print(get_first_stmt_lineno(method))
+
+#%%
 # get each class's source code
 import functools
 
@@ -136,7 +195,7 @@ def get_children(node, fn):
     if isinstance(fn, str):
         return [c for c in node.children if c.type == fn]
     else:
-    return [c for c in node.children if fn(c)]
+        return [c for c in node.children if fn(c)]
 
 
 def get_child(node, fn, none_default=False):
@@ -272,12 +331,15 @@ def get_matching_method(class_body, method_name, lineno, entry_lineno, parameter
             end_line = method.end_point[0]+1
             first_stmt = get_first_stmt_lineno(method)
             if (
-            lineno is None or (start_line <= lineno <= end_line)
+                lineno is None or (start_line <= lineno <= end_line)
             ):
                 if (
-            parameter_types is None or matches_parameter_types(method, parameter_types)
-        ):
-            return method
+                    parameter_types is None or matches_parameter_types(method, parameter_types)
+                ):
+                    if (
+                        entry_lineno is None or (first_stmt is not None and first_stmt.start_point[0]+1 == entry_lineno)
+                    ):
+                        return method
 
 
 def return_method(class_name, method_name, lineno, entry_lineno, parameter_types):
