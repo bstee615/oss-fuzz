@@ -39,7 +39,29 @@ def parse_file(filename):
         tree = parser.parse(f.read())
     return tree
 
+def print_tree(root, return_string=False):
+    if return_string:
+        output = io.StringIO()
+    else:
+        output = None
+    print(file=output)
+    q = [(root, 0)]
+    while len(q) > 0:
+        n, level = q.pop(-1)
+        print("  " * level, end="", file=output)
+        node_str = print_node(n, return_string=True)
+        print(node_str.rstrip(), file=output)
+        q.extend([(m, level+1) for m in reversed(n.children)])
+    if return_string:
+        return output.getvalue()
 
+def test_parse():
+    tree = parser.parse("""public void main() {
+    System.out.println("Hello, world!");
+}""".encode())
+    print_tree(tree.root_node)
+
+#%%
 
 
 def decompose_location(location):
@@ -107,6 +129,9 @@ import functools
 
 
 def get_children(node, fn):
+    if isinstance(fn, str):
+        return [c for c in node.children if c.type == fn]
+    else:
     return [c for c in node.children if fn(c)]
 
 
@@ -215,11 +240,17 @@ def dfs(node, fn, indent=0):
                 return result
 
 
-def print_node(node, indent=0, **kwargs):
+def print_node(node, indent=0, return_string=False, **kwargs):
+    if return_string:
+        output = io.StringIO()
+    else:
+        output = None
     text = node.text.decode()
     if "\n" in text:
         text = text.splitlines(keepends=False)[0] + "..."
-    print(" " * (indent * 2), node, text)
+    print(" " * (indent * 2), node, text, file=output)
+    if return_string:
+        return output.getvalue()
 
 
 def get_method_node(
