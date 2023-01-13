@@ -27,28 +27,6 @@ handler.setFormatter(formatter)
 root.addHandler(handler)
 
 
-def count_calls(xml):
-    """Return the number of <call> tags in xml."""
-    num_calls = 0
-    with open(xml) as inf:
-        for line in tqdm.tqdm(inf, desc="count <call> tags", leave=False):
-            if "<call" in line:
-                num_calls += 1
-    return num_calls
-
-
-def enumerate_calls(xml):
-    """Return a generator yielding all <call> nodes in xml."""
-    it = ET.iterparse(xml, events=("end",))
-    try:
-        for _, node in it:
-            if node.tag == "call":
-                yield node
-                node.clear()
-    except ET.ParseError as ex:
-        log.error(f"XML file ended prematurely. {ex}")
-
-
 def parse_xml(xml, nproc, single_thread):
     """Parse xml and return a generator of the representations of each <call> tag."""
     calls = enumerate_calls(xml)
@@ -113,10 +91,14 @@ def main():
                     args.single_thread,
                 )
                 desc = f"XML ({i+1}/{len(all_xmls)}) {xml}"
+                num_calls = count_calls(xml)
+                if args.sample:
+                    it = itertools.islice(it, 10)
+                    num_calls = min(num_calls, 10)
                 with tqdm.tqdm(
                     it,
                     desc=desc,
-                    total=count_calls(xml),
+                    total=num_calls,
                 ) as pbar:
                     for result in pbar:
                         if result["result"] == "success":
