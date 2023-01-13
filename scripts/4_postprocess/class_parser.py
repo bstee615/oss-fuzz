@@ -294,6 +294,9 @@ def return_method(class_name, method_name, lineno, entry_lineno, parameter_types
                 if node.type == "enum_declaration":
                     class_body = get_child(
                         class_body, lambda c: c.type == "enum_body_declarations"
+                    , none_default=True)
+                    if class_body is None:
+                        return None
                 return get_matching_method(class_body, method_name, lineno, entry_lineno, parameter_types)
 
     return functools.partial(
