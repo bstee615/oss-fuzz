@@ -75,6 +75,9 @@ def decompose_location(location):
     if dollar_idx != -1:
         class_name, after_dollar_part = class_name.split("$", maxsplit=1)
     rest = rest[:-1]
+    if len(rest) == 0:
+        parameter_types = []
+    else:
     parameter_types = rest.split(", ")
     return {
         "class_name": class_name,
