@@ -125,7 +125,8 @@ def main():
                 xml_results["failed_xml"] += 1
                 print("ERROR in file:", str(xml))
                 print(traceback.format_exc())
-            all_results.update(xml_results)
+            for k, v in xml_results.items():
+                all_results[k] = (all_results[k] + v) if k in all_results else v
     print("RESULTS:")
     print(json.dumps(all_results, indent=2))
 
