@@ -139,6 +139,23 @@ def get_dynamic_information(call, method_node):
     return entry_variables, lines_covered
 
 
+def get_entry_exit_lineno(call):
+    entry_lineno = None
+    exit_lineno = None
+    for child in call:
+        if child.tag == "tracepoint":
+            if child.attrib["type"] == "entry":
+                try:
+                    entry_lineno = int(child.attrib["location"].split(":")[1])
+                except IndexError:
+                    pass
+            if child.attrib["type"] == "exit":
+                try:
+                    exit_lineno = int(child.attrib["location"].split(":")[1])
+                except IndexError:
+                    pass
+    return entry_lineno, exit_lineno
+
 
 def process_one(call, xml):
     """
@@ -166,6 +183,8 @@ def process_one(call, xml):
             "result": "skipped_lambda",
         }
     class_name = location["class_name"]
+
+    entry_lineno, exit_lineno = get_entry_exit_lineno(call)
 
     xml_stem = xml.stem
     project_fuzzer = xml_stem.split("-", maxsplit=1)[1]
