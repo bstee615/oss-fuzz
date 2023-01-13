@@ -71,50 +71,19 @@ auto_lookup = {
     # "jakarta.mail": "jakarta-mail-api",
 }
 
-def get_repo(project, class_name):
-    """Return the repo containing the project's source code."""
-    return jar_code_dir / project, False
-    # matched_repo_name = None
-    # for package_path, repo_name in auto_lookup.items():
-    #     if class_name.startswith(package_path):
-    #         matched_repo_name = repo_name
-    # if matched_repo_name is not None:
-    #     return Repo("repos/" + matched_repo_name).working_dir, True
-    # else:
-    #     return Repo("repos/" + project).working_dir, False
-
 
 def get_src_fpath(project, class_name):
     """
     Get filepath of class_name source code.
     """
-    repo, fudged = get_repo(project, class_name)
+    fudged = False
     if class_name.endswith("Fuzzer") or class_name == "ExampleFuzzerNative":
         class_filepath = class_name.replace(".", "/")
-        src_fpaths = Path("projects") / project / (class_filepath + ".java")
+        src_fpaths = list((Path("projects") / project).rglob(class_filepath + ".java"))
     else:
-        src_fpaths = get_source_file(repo, class_name)
-        # TODO: make this better
-        # try:
-        #     src_fpath = get_source_file(repo, class_name)
-        # except AssertionError:
-        #     # Try again
-        #     if class_name.startswith("org.apache.commons"):
-        #         package_subname = class_name.split(".")[3]
-        #         if package_subname[-1].isdigit():
-        #             # configuration2 lang3
-        #             package_subname = package_subname[:-1]
-        #         repo_name = "apache-commons-" + package_subname
-        #         repo = Repo("repos/" + repo_name)
-        #         src_fpath = get_source_file(repo, class_name)
-        #     else:
-        #         p = next(((k, v) for k, v in auto_lookup.items() if class_name.startswith(k)), None)
-        #         if p is not None:
-        #             repo_name = p[1]
-        #             repo = Repo("repos/" + repo_name)
-        #             src_fpath = get_source_file(repo, class_name)
-        #         else:
-        #             raise
+        src_fpaths = get_source_file(Path("repos_build") / project, class_name)
+        src_fpaths += get_source_file(Path("repos") / project, class_name)
+        # TODO: add jar_code directory as a fallback
     return src_fpaths, fudged
 
 
@@ -204,13 +173,16 @@ def process_one(call, xml):
     method_name = location["method_name"]
     parameter_types = location["parameter_types"]
     try:
-        try:
-            src_fpath, fudged = get_src_fpath(project, class_name)
-        except AssertionError:
+        src_fpaths, fudged = get_src_fpath(project, class_name)
+        if len(src_fpaths) == 0:
             return {
                 "result": "missing_source",
             }
-        method_node = get_method_node(src_fpath, class_name, method_name, None, parameter_types)
+        method_node = None
+        for fpath in src_fpaths:
+            method_node = get_method_node(fpath, class_name, method_name, lineno, entry_lineno, parameter_types)
+            if method_node is not None:
+                break
 
         if method_node is None:
             return {
