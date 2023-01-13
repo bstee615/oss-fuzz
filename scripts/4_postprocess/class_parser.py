@@ -151,7 +151,11 @@ def get_parameter_types(method):
     params = list(get_children(formal_parameters, lambda n: n.is_named))
     param_types = []
     for p in params:
-        typ = get_children(p, lambda n: n.is_named)[0]
+        type_types = ["void_type", "integral_type", "floating_point_type", "boolean_type", "type_identifier", "scoped_type_identifier", "array_type"]
+        typs = get_children(p, lambda n: n.is_named and n.type in type_types + ["generic_type"])
+        typ = typs[0]
+        if typ.type == "generic_type":
+            typ = get_child(typ, lambda n: n.type in type_types)
         typ_text = typ.text.decode()
         typ_text = "".join(typ_text.split())
         param_types.append(typ_text)
@@ -159,7 +163,13 @@ def get_parameter_types(method):
 
 def matches_parameter_types(method, trace_parameter_types):
     source_parameter_types = get_parameter_types(method)
-    return all(s in t for s, t in zip(source_parameter_types, trace_parameter_types))
+    def matches(source_t, trace_t):
+        if trace_t.startswith("java.lang.Object"):
+            trace_t = trace_t[len("java.lang.Object"):]
+            return trace_t in source_t
+        return source_t in trace_t
+    result = all(matches(s, t) for s, t in zip(source_parameter_types, trace_parameter_types))
+    return result
 
 def test_parameter_types():
     tree = parser.parse("""public class Foo { // 0
@@ -169,7 +179,7 @@ def test_parameter_types():
     public void bar(int baz) { // 4
          // 5
     } // 6
-    public <t> void bar(int gam, t gee) { // 7
+    public <t> void bar(Clazz gam, t gee) { // 7
          // 8
     } // 9
     public void bar(int[] boo, foo [] zoo) { // 10
@@ -185,6 +195,73 @@ def test_parameter_types():
         print_node(method_node)
         print(get_parameter_types(method_node))
     print(get_matching_method(class_body, "bar", None, ["int", "t"]))
+
+def test_parameter_types2():
+    tree = parser.parse("""public class SevenZFile {
+    private static byte[] utf16Decode(final char[] chars) {
+        if (chars == null) {
+            return null;
+        }
+        final ByteBuffer encoded = UTF_16LE.encode(CharBuffer.wrap(chars));
+        if (encoded.hasArray()) {
+            return encoded.array();
+        }
+        final byte[] e = new byte[encoded.remaining()];
+        encoded.get(e);
+        return e;
+    }
+}""".encode())
+    root = tree.root_node
+    class_decl = get_child(root, lambda n: n.type == "class_declaration")
+    class_body = get_child(class_decl, lambda n: n.type == "class_body")
+    # class_block = get_child(class_decl, lambda n: n.type == "block")
+    methods = get_children(class_body, lambda n: n.type == "method_declaration")
+    for method_node in methods:
+        print_node(method_node)
+        print(get_parameter_types(method_node))
+    # print(get_matching_method(class_body, "utf16Decode", None, ["int", "t"]))
+
+def test_parameter_types3():
+    tree = parser.parse("""public class BoundedSeekableByteChannelInputStream {
+    @Override
+    public void close() {
+        // the nested channel is controlled externally
+    }
+}""".encode())
+    root = tree.root_node
+    class_decl = get_child(root, lambda n: n.type == "class_declaration")
+    class_body = get_child(class_decl, lambda n: n.type == "class_body")
+    # class_block = get_child(class_decl, lambda n: n.type == "block")
+    methods = get_children(class_body, lambda n: n.type == "method_declaration")
+    for method_node in methods:
+        print_node(method_node)
+        print(get_parameter_types(method_node))
+    print(get_matching_method(class_body, "close", 5, []))
+
+def test_parameter_types4():
+    tree = parser.parse("""public class Foo {
+    private int evaluateType(final Map<String, String> globalPaxHeaders, final byte[] header) {
+        if (ArchiveUtils.matchAsciiBuffer(MAGIC_GNU, header, MAGIC_OFFSET, MAGICLEN)) {
+            return FORMAT_OLDGNU;
+        }
+        if (ArchiveUtils.matchAsciiBuffer(MAGIC_POSIX, header, MAGIC_OFFSET, MAGICLEN)) {
+            if (isXstar(globalPaxHeaders, header)) {
+                return FORMAT_XSTAR;
+            }
+            return FORMAT_POSIX;
+        }
+        return 0;
+    }
+}""".encode())
+    root = tree.root_node
+    class_decl = get_child(root, lambda n: n.type == "class_declaration")
+    class_body = get_child(class_decl, lambda n: n.type == "class_body")
+    # class_block = get_child(class_decl, lambda n: n.type == "block")
+    methods = get_children(class_body, lambda n: n.type == "method_declaration")
+    for method_node in methods:
+        print_node(method_node)
+        print(get_parameter_types(method_node))
+    print(get_matching_method(class_body, "evaluateType", 3, None, ["java.util.Map", "byte[]"]))
 
 def get_matching_method(class_body, method_name, lineno, entry_lineno, parameter_types):
     methods = get_children(class_body, lambda c: c.type == "method_declaration")
