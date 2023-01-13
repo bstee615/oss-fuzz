@@ -53,7 +53,6 @@ def parse_xml(xml, nproc, single_thread):
     """Parse xml and return a generator of the representations of each <call> tag."""
     calls = enumerate_calls(xml)
 
-    invalid_methods = set()
     if single_thread:
         nproc = 1
     with Pool(nproc) as pool:
@@ -74,18 +73,7 @@ def parse_xml(xml, nproc, single_thread):
                 calls,
             )
         for result in it:
-            if result["result"] == "invalid_call":
-                invalid_methods.add(
-                    (result["class_name"], result["method_name"])
-                )
             yield result
-    if len(invalid_methods) > 0:
-        print(
-            xml,
-            "Invalid calls:",
-            json.dumps(sorted(invalid_methods), indent=2),
-            sep="\n",
-        )
 
 
 def main():
