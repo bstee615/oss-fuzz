@@ -272,27 +272,6 @@ def process_one(call, xml):
             "ex": str(traceback.format_exc()),
         }
 
-def check_method_validity(call, method_node):
-    entry_lineno = None
-    exit_lineno = None
-    for child in call:
-        if child.tag == "tracepoint":
-            if child.attrib["type"] == "entry":
-                entry_lineno = int(child.attrib["location"].split(":")[1])
-            if child.attrib["type"] == "exit":
-                exit_lineno = int(child.attrib["location"].split(":")[1])
-    if entry_lineno is not None:
-        first_stmt = get_first_stmt(method_node)
-        assert first_stmt.start_point[0]+1 == entry_lineno, f"Got invalid statement {str(first_stmt)} at exit {entry_lineno}"
-
-    if exit_lineno is not None:
-        q = [method_node]
-        while len(q) > 0:
-            n = q.pop(0)
-            if n.start_point[0]+1 == exit_lineno:
-                assert n.type in ("return_statement", "}"), f"Got invalid node type {n.type} ({n}) at exit {exit_lineno}"
-            else:
-                q.extend(n.children)
     
 def test_process_no_lineno():
     print()
