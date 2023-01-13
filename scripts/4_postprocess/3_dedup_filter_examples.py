@@ -13,7 +13,6 @@ args = parser.parse_args()
 def ambiguate(var):
     if isinstance(var, str):
         # unhandled node type, probably event thread mismatch
-        # print("STRING", var)
         return None
     if var["tag"] == "event-thread-mismatch":
         return {
@@ -66,6 +65,7 @@ seen_examples = set()
 def filter_example(example):
     if example["is_forward"]:
         return "forward"
+    # TODO: detect empty function.
     h = make_hash(example)
     if h is None:
         return "failed"
