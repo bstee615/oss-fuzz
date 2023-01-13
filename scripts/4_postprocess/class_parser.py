@@ -294,13 +294,7 @@ def return_method(class_name, method_name, lineno, entry_lineno, parameter_types
                 if node.type == "enum_declaration":
                     class_body = get_child(
                         class_body, lambda c: c.type == "enum_body_declarations"
-                    )
-                # print("FOUND CLASS", node)
-                # if is_inner_class:
-                #     return dfs(class_body, fn=return_innerclass_method)
-                # else:
-                #     return get_matching_method(class_body, method_name, lineno)
-                return get_matching_method(class_body, method_name, lineno, parameter_types)
+                return get_matching_method(class_body, method_name, lineno, entry_lineno, parameter_types)
 
     return functools.partial(
         fn, class_name=class_name, method_name=method_name, lineno=lineno, entry_lineno=entry_lineno, parameter_types=parameter_types
