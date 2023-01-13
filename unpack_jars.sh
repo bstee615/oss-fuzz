@@ -20,7 +20,7 @@ function unzipJars() {
                 # relative_path="$(realpath --relative-to="$BUILD_OUT_DIR" "$jarFile")"
                 # dstDir="$DST_DIR/${relative_path%.jar}"
                 echo "Unpacking $jarFile to $dstDir"
-                timeout 10m jd-cli --skipResources --outputDir ${dstDir} $jarFile || echo "TIMED OUT: $1 $jarFile"
+                timeout 10m jd-cli --displayLineNumbers --skipResources --outputDir ${dstDir} $jarFile || echo "TIMED OUT: $1 $jarFile"
             fi
         done
     else
