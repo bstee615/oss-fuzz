@@ -3,10 +3,8 @@ import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from collections import defaultdict
-import itertools
 
 from class_parser import *
-from git import Repo
 
 import logging
 
