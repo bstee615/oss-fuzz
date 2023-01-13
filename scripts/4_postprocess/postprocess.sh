@@ -18,4 +18,6 @@ INFILE="$OUTFILE"
 OUTFILE="${INFILE%.jsonl}_sort.jsonl"
 python scripts/4_postprocess/4_sort_examples.py $INFILE $OUTFILE 2>&1 | tee -a $LOGFILE
 
+python scripts/4_postprocess/5_stats2.py $OUTFILE 2>&1 | tee -a $LOGFILE
+
 python scripts/4_postprocess/8_filter_variables.py $OUTFILE 2>&1 | tee -a $LOGFILE

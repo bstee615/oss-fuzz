@@ -7,16 +7,10 @@ import seaborn as sns
 import pandas as pd
 
 #%%
-# import argparse
-# parser = argparse.ArgumentParser(description='Description of your program')
-# parser.add_argument('input_file')
-# args = parser.parse_args()
-
-#%%
-from types import SimpleNamespace
-args = SimpleNamespace()
-# args.input_file = "/home/benjis/code/bug-benchmarks/oss-fuzz/first_run_xmls_dedup_sort.jsonl"
-args.input_file = "/mnt/magi/basilisk-backup/Files/biggie/oss-fuzz/fuzz_10m_trace_3h/postprocessed_json/examples_sorted_clean.jsonl"
+import argparse
+parser = argparse.ArgumentParser(description='Description of your program')
+parser.add_argument('input_file')
+args = parser.parse_args()
 
 #%%
 with open(args.input_file) as inf:
