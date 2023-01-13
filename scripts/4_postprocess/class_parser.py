@@ -113,8 +113,9 @@ def test_decompose_location():
 
 
 def get_source_file(repo, class_name_fq):
-    class_filepath = class_name_fq.replace(".", "/")
-    return Path(repo) / (class_filepath + ".java")
+    class_filepath = class_name_fq.replace(".", "/") + ".java"
+    result = list(Path(repo).rglob(class_filepath))
+    return result
 
 
 def test_get_source_file():
