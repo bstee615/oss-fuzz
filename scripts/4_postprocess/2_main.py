@@ -7,6 +7,7 @@ from collections import OrderedDict
 from multiprocessing import Manager, Pool
 from pathlib import Path
 
+import itertools
 import tqdm
 from exampleizer import *
 
@@ -67,11 +68,16 @@ def main():
 
     all_xmls = list(Path(args.input_dir).glob("*.xml"))
     if args.sample:
+        # NOTE: different times call for different measures
         # all_xmls = all_xmls[:2]
-        all_xmls = all_xmls[:10]
+        # all_xmls = all_xmls[:10]
+        # all_xmls = [xml for xml in all_xmls if "trace-apache-commons-ImagingBmpFuzzer.xml" in xml.name]
+        # all_xmls = [xml for xml in all_xmls if "trace-apache-commons-lang-EscapeHtmlFuzzer.xml" in xml.name]
+        # all_xmls = [xml for xml in all_xmls if "janino" in xml.name]
         # all_xmls = [
         #     Path("postprocessed_xmls/trace-apache-commons-bcel-BcelFuzzer.xml.repair.xml")
         # ]
+        pass
     all_xmls = sorted(all_xmls, key=lambda p: p.name)
     log.info("Processing %d XMLs", len(all_xmls))
 
