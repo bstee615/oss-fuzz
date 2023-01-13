@@ -170,17 +170,26 @@ def process_one(call, xml):
     if location["method_name"].startswith("$"):
         return {
             "result": "invalid_call",
+            "xml": str(xml),
             "class_name": location["class_name"],
             "method_name": location["method_name"],
+            "method": method,
+            "location": location,
             # "call_xml": ET.tostring(call).decode(),
         }
     if location["inner_class_name"] is not None:
         return {
             "result": "skipped_inner_class",
+            "xml": str(xml),
+            "method": method,
+            "location": location,
         }
     if location["method_name"].startswith("lambda$"):
         return {
             "result": "skipped_lambda",
+            "xml": str(xml),
+            "method": method,
+            "location": location,
         }
     class_name = location["class_name"]
 
@@ -196,6 +205,11 @@ def process_one(call, xml):
         if len(src_fpaths) == 0:
             return {
                 "result": "missing_source",
+                "xml": str(xml),
+                "project": project,
+                "class_name": class_name,
+                "method": method,
+                "location": location,
             }
         method_node = None
         for fpath in src_fpaths:
@@ -210,7 +224,9 @@ def process_one(call, xml):
                 "class_name": class_name,
                 "method_name": method_name,
                 "lineno": lineno,
-                "src_fpath": str(src_fpath),
+                "entry_lineno": entry_lineno,
+                "parameter_types": parameter_types,
+                "all_src_fpath": [str(fpath) for fpath in src_fpaths],
                 "xml": str(xml),
                 # "call_xml": ET.tostring(call).decode(),
             }
@@ -227,12 +243,17 @@ def process_one(call, xml):
                 "project": project,
                 "class": class_name,
                 "method": method_name,
+                "lineno": lineno,
+                "entry_lineno": entry_lineno,
+                "parameter_types": parameter_types,
+                "src_fpath": str(fpath),
+                "all_src_fpath": [str(fpath) for fpath in src_fpaths],
                 "fudged_repo": fudged,
                 "method_type": method_type,
                 "is_forward": method_type == "forward",
                 "has_body": method_type != "no_body",
                 "xml_file_path": str(xml.absolute()),
-                "file_path": str(src_fpath.absolute()),
+                "file_path": str(fpath.absolute()),
                 "start_point": method_node.start_point,
                 "end_point": method_node.end_point,
                 "code": method_code,
