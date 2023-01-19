@@ -30,7 +30,7 @@ RUN curl -L https://downloads.apache.org/maven/maven-3/3.8.6/binaries/apache-mav
     unzip maven.zip -d $SRC/maven && \
     rm -rf maven.zip
 
-ENV MVN $SRC/maven/apache-maven-3.8.6/bin/mvn
+ENV MVN $SRC/maven/apache-maven-3.8.7/bin/mvn
 
 COPY build.sh $SRC/
 COPY *.java $SRC/
