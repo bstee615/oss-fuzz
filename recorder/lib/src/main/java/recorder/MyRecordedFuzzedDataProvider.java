@@ -44,10 +44,6 @@ public final class MyRecordedFuzzedDataProvider implements FuzzedDataProvider, A
     this.resultWriter.close();
   }
 
-  public <T> void noop(T obj) {
-    assert true;
-  }
-
   public MyRecordedFuzzedDataProvider setLocation(String location) {
     assert lastLocation == null;
     lastLocation = location;
