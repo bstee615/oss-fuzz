@@ -54,4 +54,6 @@ scripts/4_postprocess/copy_it.log
 all_gits.errors
 postprocessed_runall_checkmethod/
 wrong_repo_debugging
+source_logs/
+build_new
 maven.zip
