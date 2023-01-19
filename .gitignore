@@ -52,3 +52,6 @@ vendor
 repos
 scripts/4_postprocess/copy_it.log
 all_gits.errors
+postprocessed_runall_checkmethod/
+wrong_repo_debugging
+
