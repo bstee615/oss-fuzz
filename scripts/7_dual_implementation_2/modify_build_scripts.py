@@ -32,8 +32,8 @@ def transform_project(project):
     # javac -g
     new_text = re.sub(r"(^|\s)javac(\s)", r"\1javac -g\2", new_text)
     new_text = re.sub(r"(^|\s)javac(\s.*)", r"""\1javac\2
-echo \1javac\2 >> $OUT/build_fuzzer_commands_$(basename $fuzzer).sh
-echo bash build_fuzzer_commands_$(basename $fuzzer).sh >> $OUT/build_fuzzer_commands_all.sh""", new_text)
+echo \1javac -d $OUT\2 >> $OUT/build_fuzzer_commands_$(basename $fuzzer).sh
+echo bash $OUT/build_fuzzer_commands_$(basename $fuzzer).sh >> $OUT/build_fuzzer_commands_all.sh""", new_text)
     
     # TODO:If not exist, detect and add invocations to "mvn" or "mvnw" or "${MVN}" or "${MVNW}"
     # https://www.ibm.com/docs/en/fafz/14.1?topic=analyzer-generating-debugging-information-common-java-build-tools
