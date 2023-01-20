@@ -3,6 +3,7 @@ function getData() {
     cat data/1_preprocess/java-projects-from-csv.txt
     # head -n1 data/1_preprocess/java-projects-from-csv.txt
 }
+rm build_all_fuzzers.log
 while read p
 do
     echo BEGIN BUILDING PROJECT $p... | tee -a build_all_fuzzers.log
