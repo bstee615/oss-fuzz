@@ -21,6 +21,7 @@ FAILURE_LOG_FILE="$SOURCE_LOG_DIR/failures.txt"
 # BUILD_ARGS=""
 BUILD_ARGS="--shortcut --no-clean"
 
+set -e
 set -x
 
 # Instrument fuzzer
