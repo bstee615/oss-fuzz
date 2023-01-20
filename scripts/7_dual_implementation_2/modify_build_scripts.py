@@ -31,9 +31,9 @@ def transform_project(project):
     new_text = text
     # javac -g
     new_text = re.sub(r"(^|\s)javac(\s)", r"\1javac -g\2", new_text)
-    new_text = re.sub(r"(^|\s)javac(\s.*)", r"""\1javac\2
-echo \1javac -d $OUT\2 >> $OUT/build_fuzzer_commands_$(basename $fuzzer).sh
-echo bash $OUT/build_fuzzer_commands_$(basename $fuzzer).sh >> $OUT/build_fuzzer_commands_all.sh""", new_text)
+#     new_text = re.sub(r"(^|\s)javac(\s.*)", r"""\1javac\2
+# echo \1javac -d $OUT\2 >> $OUT/build_fuzzer_commands_$(basename $fuzzer).sh
+# echo bash $OUT/build_fuzzer_commands_$(basename $fuzzer).sh >> $OUT/build_fuzzer_commands_all.sh""", new_text)
     
     # TODO:If not exist, detect and add invocations to "mvn" or "mvnw" or "${MVN}" or "${MVNW}"
     # https://www.ibm.com/docs/en/fafz/14.1?topic=analyzer-generating-debugging-information-common-java-build-tools
@@ -43,6 +43,20 @@ echo bash $OUT/build_fuzzer_commands_$(basename $fuzzer).sh >> $OUT/build_fuzzer
 
     # When "--cp=" occurs, prepend "$RECORDER_API_PATH:"
     new_text = re.sub(r"(^|\s)--cp=", r"\1--cp=$RECORDER_API_PATH:", new_text)
+    
+    # Shadow javac with wrapper function
+    lines = new_text.splitlines(keepends=True)
+    new_text = ""
+    did_work = False
+    for l in lines:
+        if not did_work and not l.startswith("#"):
+            new_text += """javac() {
+    echo javac $@ >> $OUT/build_fuzzer_commands_$(basename $fuzzer).sh
+    $(which javac) $@
+}"""
+            did_work = True
+        new_text += l
+
     print("*** build.sh ***")
     print("\n".join(difflib.unified_diff(text.splitlines(), new_text.splitlines())))
     dst_file = dst_dir / "build.sh"
