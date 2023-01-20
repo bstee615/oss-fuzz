@@ -21,7 +21,7 @@ public final class MyInputRecorder implements AutoCloseable {
   private Writer writer;
   private Writer resultWriter;
   String lastLocation = null;
-  private int ordinal = -1;
+  private static int ordinal = -1;
 
   public MyInputRecorder(String baseDir, String fuzzerTargetName) {
     String filename = String.format("%s/fuzzerOutput_%s.jsonl", baseDir, fuzzerTargetName);
