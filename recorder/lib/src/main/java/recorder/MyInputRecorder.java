@@ -19,16 +19,13 @@ import com.google.gson.Gson;
 public final class MyInputRecorder implements AutoCloseable {
   private Gson gson;
   private Writer writer;
-  private Writer resultWriter;
   String lastLocation = null;
   private static int ordinal = -1;
 
   public MyInputRecorder(String baseDir, String fuzzerTargetName) {
     String filename = String.format("%s/fuzzerOutput_%s.jsonl", baseDir, fuzzerTargetName);
-    String resultFilename = String.format("%s/fuzzerResult_%s.jsonl", baseDir, fuzzerTargetName);
     try {
         this.writer = new BufferedWriter(new FileWriter(filename, true));
-        this.resultWriter = new BufferedWriter(new FileWriter(resultFilename, true));
     }
     catch (IOException ex) {
         System.err.printf("Error initializing writer: %s%n", filename);
@@ -38,7 +35,6 @@ public final class MyInputRecorder implements AutoCloseable {
 
   public void close() throws Exception {
     this.writer.close();
-    this.resultWriter.close();
   }
 
   private void writeToFile(String string) {
@@ -60,7 +56,7 @@ public final class MyInputRecorder implements AutoCloseable {
   private String encodeData(String type, String value) {
     // StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace(); // NOTE: disable because no longer needed
     // assert lastLocation != null;
-    String result = String.format("{\"type\": \"%s\", \"value\": %s, \"location\": %s}", type, value, lastLocation);
+    String result = String.format("{\"log_type\": \"input\", \"type\": \"%s\", \"value\": %s, \"location\": %s}", type, value, lastLocation);
     lastLocation = null;
     return result;
   }
@@ -82,7 +78,7 @@ public final class MyInputRecorder implements AutoCloseable {
     recordTag("end", ordinal);
   }
 
-  /* BEGIN GENERATED METHODS */
+  /* BEGIN INPUT METHODS */
   public void recordTag(String tag, int value) {
     writeToFile(encodeData(tag, gson.toJson(value)));
   }
@@ -176,5 +172,71 @@ public final class MyInputRecorder implements AutoCloseable {
     writeToFile(encodeData("int_count", gson.toJson(object)));
     return object;
   }
-  /* END GENERATED METHODS */
+  /* END INPUT METHODS */
+
+  /* BEGIN RESULT METHODS */
+  private void logResultHelper(String value, String location, String type) {
+    writeToFile(String.format("{\"log_type\": \"output\", \"type\": %s, \"value\": %s, \"location\": %s}", gson.toJson(type), value, location));
+  }
+
+  public <T> void logResult(T obj, String location) {
+    logResultHelper(gson.toJson(obj.toString()), location, "Object");
+  }
+
+  public <T> void logResult(boolean obj, String location) {
+    logResultHelper(gson.toJson(obj), location, "boolean");
+  }
+
+  public <T> void logResult(boolean[] obj, String location) {
+    logResultHelper(gson.toJson(obj), location, "boolean[]");
+  }
+
+  public <T> void logResult(byte obj, String location) {
+    logResultHelper(gson.toJson(obj), location, "byte");
+  }
+
+  public <T> void logResult(byte[] obj, String location) {
+    logResultHelper(gson.toJson(obj), location, "byte[]");
+  }
+
+  public <T> void logResult(char obj, String location) {
+    logResultHelper(gson.toJson(obj), location, "char");
+  }
+
+  public <T> void logResult(char[] obj, String location) {
+    logResultHelper(gson.toJson(obj), location, "char[]");
+  }
+
+  public <T> void logResult(int obj, String location) {
+    logResultHelper(gson.toJson(obj), location, "int");
+  }
+
+  public <T> void logResult(int[] obj, String location) {
+    logResultHelper(gson.toJson(obj), location, "int[]");
+  }
+
+  public <T> void logResult(short obj, String location) {
+    logResultHelper(gson.toJson(obj), location, "short");
+  }
+
+  public <T> void logResult(short[] obj, String location) {
+    logResultHelper(gson.toJson(obj), location, "short[]");
+  }
+
+  public <T> void logResult(float obj, String location) {
+    logResultHelper(gson.toJson(obj), location, "float");
+  }
+
+  public <T> void logResult(float[] obj, String location) {
+    logResultHelper(gson.toJson(obj), location, "float[]");
+  }
+
+  public <T> void logResult(double obj, String location) {
+    logResultHelper(gson.toJson(obj), location, "double");
+  }
+
+  public <T> void logResult(double[] obj, String location) {
+    logResultHelper(gson.toJson(obj), location, "double[]");
+  }
+  /* END RESULT METHODS */
 }
