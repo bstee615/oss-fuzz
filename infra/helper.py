@@ -282,6 +282,9 @@ def get_parser():  # pylint: disable=too-many-statements
                                     '(default).')
   build_fuzzers_parser.add_argument('--shortcut',
                                     action='store_true',)
+  build_fuzzers_parser.add_argument('--no_cache_build_image',
+                                    action='store_false',
+                                    dest="cache_build_image")
   build_fuzzers_parser.set_defaults(clean=False, shortcut=False)
 
   check_build_parser = subparsers.add_parser(
@@ -669,10 +672,11 @@ def build_fuzzers_impl(  # pylint: disable=too-many-arguments,too-many-locals,to
     env_to_add,
     source_path,
     shortcut,
+    cache_build_image,
     mount_path=None,
     child_dir=''):
   """Builds fuzzers."""
-  if not build_image_impl(project, architecture=architecture):
+  if not build_image_impl(project, cache=cache_build_image, architecture=architecture):
       return False
 
   project_out = os.path.join(project.out, child_dir)
@@ -767,6 +771,7 @@ def build_fuzzers(args):
                          args.e,
                          args.source_path,
                          args.shortcut,
+                         args.cache_build_image,
                          mount_path=args.mount_path,
                          child_dir=child_dir)
       for sanitizer, child_dir in sanitized_binary_directories)
