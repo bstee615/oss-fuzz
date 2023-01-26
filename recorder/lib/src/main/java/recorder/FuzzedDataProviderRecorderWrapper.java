@@ -14,17 +14,17 @@ import java.lang.Thread;
 import java.lang.StackTraceElement;
 import com.google.gson.Gson;
 
-// Wraps the native FuzzedDataProviderImpl and serializes all its return values as JSONL.
-public final class MyRecordedFuzzedDataProvider implements FuzzedDataProvider {
+// Wraps the native FuzzedDataProvider and serializes all its return values as JSONL.
+public final class FuzzedDataProviderRecorderWrapper implements FuzzedDataProvider {
   private FuzzedDataProvider provider;
-  private MyInputRecorder inputRecorder;
+  private FuzzerRecorder inputRecorder;
 
-  public MyRecordedFuzzedDataProvider(FuzzedDataProvider provider, MyInputRecorder inputRecorder) {
+  public FuzzedDataProviderRecorderWrapper(FuzzedDataProvider provider, FuzzerRecorder inputRecorder) {
     this.provider = provider;
     this.inputRecorder = inputRecorder;
   }
 
-  public MyRecordedFuzzedDataProvider setLocation(String location) {
+  public FuzzedDataProviderRecorderWrapper setLocation(String location) {
     inputRecorder.setLocation(location);
     return this;
   }
