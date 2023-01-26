@@ -317,6 +317,7 @@ def get_parser():  # pylint: disable=too-many-statements
   run_fuzzer_parser.add_argument('fuzzer_args',
                                  help='arguments to pass to the fuzzer',
                                  nargs='*')
+  run_fuzzer_parser.add_argument('--dry_run', action="store_true")
 
   coverage_parser = subparsers.add_parser(
       'coverage', help='Generate code coverage report for the project.')
@@ -579,7 +580,7 @@ def prepare_aarch64_emulation():
   subprocess.check_call(['docker', 'buildx', 'use', ARM_BUILDER_NAME])
 
 
-def docker_run(run_args, print_output=True, architecture='x86_64'):
+def docker_run(run_args, print_output=True, architecture='x86_64', dry_run=False):
   """Calls `docker run`."""
   platform = 'linux/arm64' if architecture == 'aarch64' else 'linux/amd64'
   command = [
@@ -597,10 +598,13 @@ def docker_run(run_args, print_output=True, architecture='x86_64'):
   if not print_output:
     stdout = open(os.devnull, 'w')
 
-  try:
-    subprocess.check_call(command, stdout=stdout, stderr=subprocess.STDOUT)
-  except subprocess.CalledProcessError:
-    return False
+  if dry_run:
+    logging.info("docker_run: %s", command)
+  else:
+    try:
+      subprocess.check_call(command, stdout=stdout, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError:
+      return False
 
   return True
 
@@ -739,7 +743,7 @@ def build_fuzzers_impl(  # pylint: disable=too-many-arguments,too-many-locals,to
   ]
 
   if shortcut:
-    command += ["bash", "/out/build_fuzzer_commands_all.sh"]
+    command += ["bash", "-c", "for f in /out/build_fuzzer_commands_*.sh; do bash -x $f; done"]
 
   result = docker_run(command, architecture=architecture)
   if not result:
@@ -1022,6 +1026,8 @@ def run_fuzzer(args):
         f'fuzzmeister_{args.worker_id}',
     ])
 
+  logging.info("FUZZER ARGS: %s", args.fuzzer_args)
+
   run_args.extend([
       '-v',
       '%s:/out' % args.project.out,
@@ -1029,10 +1035,10 @@ def run_fuzzer(args):
       BASE_RUNNER_IMAGE,
       'run_fuzzer',
       args.fuzzer_name,
-  ] + [("--" if a.startswith("instrumentation_excludes") else "-") + a for a in args.fuzzer_args])
+  ] + [("--" if a.startswith("instrumentation_excludes") or a.startswith("coverage_report") or a.startswith("autofuzz") else "-") + a for a in args.fuzzer_args])
 
   # return docker_run(run_args, timeout=args.timeout, architecture=args.architecture)
-  return docker_run(run_args, architecture=args.architecture)
+  return docker_run(run_args, architecture=args.architecture, dry_run=args.dry_run)
 
 
 def reproduce(args):
@@ -1088,7 +1094,7 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
     env += env_to_add
   
   def to_reproduce_arg(a):
-    if a.startswith("instrumentation_excludes") or a.startswith("cp"):
+    if a.startswith("instrumentation_excludes") or a.startswith("cp") or a.startswith("coverage_report") or a.startswith("autofuzz"):
       prefix = "--"
     else:
       prefix = "-"
@@ -1109,12 +1115,18 @@ def reproduce_impl(  # pylint: disable=too-many-arguments
       # '%s:/instrumentation.jar' % '/home/benjis/code/java-instrumentation/build/libs/java-instrumentation-1.0-SNAPSHOT.jar',
       '-p', port + ':' + port,
       '-t',
-      '--name', container_name,
-      'gcr.io/oss-fuzz-base/%s:%s' % (image_name, image_tag),
-      # 'bash', '-c', "sed -i '25s/.*/if [ ! -e $TESTCASE ]; then/g' `reproduce`; reproduce %s -runs=%d %s; ls /fuzzerOutput_*.jsonl; echo \"FUZZER_OUTPUT_JSONL BEGIN\"; cat /fuzzerOutput_*.jsonl | sed -e 's/^/FUZZER_OUTPUT_JSONL /'; echo \"FUZZER_OUTPUT_JSONL END\"" % (fuzzer_name, num_runs, " ".join([("--" if a.startswith("instrumentation_excludes") or a.startswith("cp") else "-") + a for a in fuzzer_args])),
-      'bash', '-c', "reproduce %s -runs=%d %s" % (fuzzer_name, num_runs, reproduce_args),
   ]
-  print("docker run", " ".join(a if ' ' not in a else '"' + a + '"' for a in run_args))
+  if container_name is not None:
+    run_args += ['--name', container_name]
+
+  run_args += [
+    'gcr.io/oss-fuzz-base/%s:%s' % (image_name, image_tag),
+    # 'bash', '-c', "sed -i '25s/.*/if [ ! -e $TESTCASE ]; then/g' `reproduce`; reproduce %s -runs=%d %s; ls /fuzzerOutput_*.jsonl; echo \"FUZZER_OUTPUT_JSONL BEGIN\"; cat /fuzzerOutput_*.jsonl | sed -e 's/^/FUZZER_OUTPUT_JSONL /'; echo \"FUZZER_OUTPUT_JSONL END\"" % (fuzzer_name, num_runs, " ".join([("--" if a.startswith("instrumentation_excludes") or a.startswith("cp") else "-") + a for a in fuzzer_args])),
+    'bash', '-c', "reproduce %s -runs=%d %s" % (fuzzer_name, num_runs, reproduce_args),
+  ]
+  # print(run_args)
+  logging.info('Running: %s.', _get_command_string(run_args))
+  # print("docker run", " ".join(a if ' ' not in a else '"' + a + '"' for a in run_args))
 
   return run_function(run_args)
 

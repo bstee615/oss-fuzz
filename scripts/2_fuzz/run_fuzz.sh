@@ -20,12 +20,14 @@ rm -rf $corpus_dir
 mkdir -p $corpus_dir
 
 logfile="$FUZZER_LOGS_ROOT/$PROJECT_NAME-$SAN-$ARCH-$FUZZER.log"
+mkdir -p $FUZZER_LOGS_ROOT
 rm -f $logfile
 
-echo "Arguments: Project=$PROJECT_NAME Sanitizer=$SAN Architecture=$ARCH FuzzTarget=$FUZZER CorpusDir=$corpus_dir Timeout=$TIMEOUT"
+echo "Arguments: $@"
 
 # timeout $(( ${TIMEOUT} + 30 )) python infra/helper.py run_fuzzer --corpus-dir $corpus_dir --worker-id $WORKER_ID $PROJECT_NAME $FUZZER max_total_time=$TIMEOUT seed=123 jobs=8 workers=8 ignore_crashes=1 2>&1 | tee $logfile
-timeout $(( ${TIMEOUT} + 30 )) python infra/helper.py run_fuzzer --corpus-dir $corpus_dir $PROJECT_NAME $FUZZER max_total_time=$TIMEOUT seed=123 jobs=8 workers=8 ignore_crashes=1 2>&1 | tee $logfile
+# timeout $(( ${TIMEOUT} + 30 )) python infra/helper.py run_fuzzer --corpus-dir $corpus_dir $PROJECT_NAME $FUZZER max_total_time=$TIMEOUT seed=123 jobs=8 workers=8 ignore_crashes=1 2>&1 | tee $logfile
+timeout $(( ${TIMEOUT} + 30 )) python infra/helper.py run_fuzzer --corpus-dir $corpus_dir $PROJECT_NAME $FUZZER max_total_time=$TIMEOUT seed=123 ignore_crashes=1 ${@: 6} 2>&1 | tee $logfile
 exitcode=${PIPESTATUS[0]}
 echo Finished with $exitcode
 
