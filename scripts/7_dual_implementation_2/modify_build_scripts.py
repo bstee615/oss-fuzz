@@ -53,7 +53,8 @@ def transform_project(project):
             new_text += """javac() {
     echo javac $@ >> $OUT/build_fuzzer_commands_$(basename $fuzzer).sh
     $(which javac) $@
-}"""
+}
+rm -f $OUT/build_fuzzer_commands_*.sh"""
             did_work = True
         new_text += l
 

@@ -8,7 +8,8 @@ FUZZER="$2"
 # PROJECT="angus-mail"
 # FUZZER="ASCIIUtilityFuzzer"
 
-CORPUS_ROOT="corpora-10m"
+CORPUS_ROOT="/run/media/benjis/BASILISK/Files/biggie/oss-fuzz/fuzz_10m_trace_3h/fuzz_run_5_complete/corpora-10m"
+# CORPUS_ROOT="corpora-10m"
 CORPUS_DIR="$CORPUS_ROOT/$PROJECT/address-x86_64-$FUZZER"
 CORPUS_INPUT="$(ls -d $CORPUS_ROOT/$PROJECT/address-x86_64-$FUZZER/* | head -n1)"
 

@@ -59,3 +59,10 @@ build_new
 maven.zip
 angus-mail/
 logs_shortcut/
+build_clean/
+logs_build_all/
+jacoco-0.8.8/
+jacoco-0.8.8.zip
+run_1/
+projects_info.csv
+projects_info_fixed.csv
