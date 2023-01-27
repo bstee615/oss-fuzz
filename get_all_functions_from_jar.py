@@ -211,6 +211,7 @@ def runjavap_aux(classpath, classnames):
 
 if __name__ == '__main__':
     jars = glob.glob("build/out/**/*.jar")
+    # jars = glob.glob("build_test/out/**/*.jar")
     # jars = list(glob.glob("build/out/*/*.jar"))[:2]
     # jars = ["build/out/osgi/ant-contrib-0.6.jar"]
     # jars = ["build/out/osgi/batik-all-1.7.jar"]

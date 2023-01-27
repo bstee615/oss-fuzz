@@ -66,3 +66,6 @@ jacoco-0.8.8.zip
 run_1/
 projects_info.csv
 projects_info_fixed.csv
+dump_logs4/
+jar_parser/
+classdoc10/
